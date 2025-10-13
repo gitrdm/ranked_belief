@@ -159,7 +159,7 @@ std::shared_ptr<RankingElement<T>> make_infinite_sequence(
 - [x] All tests passing (38/38 tests)
 - [x] **COMMIT**: "Implement RankingElement<T> lazy list node"
 
-### 2.2 RankingFunction<T> Iterator
+### 2.2 RankingIterator<T>
 **File**: `include/ranked_belief/ranking_iterator.hpp`
 
 **Key Function Signatures**:
@@ -168,23 +168,35 @@ template<typename T>
 class RankingIterator {
   using iterator_category = std::input_iterator_tag;
   using value_type = std::pair<T, Rank>;
+  
+  explicit RankingIterator(std::shared_ptr<RankingElement<T>> start, bool deduplicate = true);
   RankingIterator& operator++();
+  RankingIterator operator++(int);
   value_type operator*() const;
   bool operator==(const RankingIterator&) const;
+  bool operator!=(const RankingIterator&) const;
+  bool is_end() const;
+  bool is_deduplicating() const;
 };
 ```
 
 **Checklist**:
-- [ ] Implement input iterator interface
-- [ ] Handle end-of-sequence (nullptr sentinel)
-- [ ] Implement deduplication logic (optional, controlled by flag)
-- [ ] Create `tests/ranking_iterator_test.cpp`:
-  - Iteration over finite sequence
-  - Deduplication on/off
-  - End detection
-  - C++20 ranges compatibility
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement RankingIterator with deduplication"
+- [x] Implement input iterator interface (C++20 standard)
+- [x] Handle end-of-sequence (nullptr sentinel)
+- [x] Implement deduplication logic (optional, controlled by flag)
+- [x] Deduplication preserves first occurrence (minimum rank)
+- [x] Create `tests/ranking_iterator_test.cpp`:
+  - Construction (end sentinel, valid iterator, flags)
+  - Dereference operations (value-rank pairs, various types)
+  - Increment operations (pre/post-increment, reaching end)
+  - Comparison operations (equality, inequality, end detection)
+  - Iteration over finite sequences (single element, empty, multi-element)
+  - Deduplication on/off (preserving first rank, all duplicates)
+  - Complex types (strings, vectors)
+  - C++20 ranges compatibility (distance, find, transform)
+  - Edge cases (long sequences, many duplicates, iterator independence)
+- [x] All tests passing (35/35 tests)
+- [x] **COMMIT**: "Implement RankingIterator with deduplication"
 
 ### 2.3 RankingFunction<T> Core
 **File**: `include/ranked_belief/ranking_function.hpp`
