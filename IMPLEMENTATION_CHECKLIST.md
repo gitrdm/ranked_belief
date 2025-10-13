@@ -124,19 +124,40 @@ class RankingElement {
   const T& value() const;
   Rank rank() const;
   std::shared_ptr<RankingElement<T>> next();
+  bool is_last() const;
+  bool next_is_forced() const;
 };
+
+// Helper functions
+template<typename T>
+std::shared_ptr<RankingElement<T>> make_terminal(T value, Rank rank);
+
+template<typename T, typename F>
+std::shared_ptr<RankingElement<T>> make_lazy_element(T value, Rank rank, F computation);
+
+template<typename T>
+std::shared_ptr<RankingElement<T>> make_infinite_sequence(
+    std::function<std::pair<T, Rank>(std::size_t)> generator,
+    std::size_t start_index = 0
+);
 ```
 
 **Checklist**:
-- [ ] Implement lazy linked list node
-- [ ] Store value, rank, and lazy next pointer
-- [ ] Implement move semantics for efficiency
-- [ ] Create `tests/ranking_element_test.cpp`:
-  - Construction with various types
+- [x] Implement lazy linked list node
+- [x] Store value, rank, and lazy next pointer (Promise<shared_ptr<RankingElement<T>>>)
+- [x] Implement immutable semantics (deleted copy/move)
+- [x] Add helper functions for construction (terminal, lazy, infinite sequence)
+- [x] Create `tests/ranking_element_test.cpp`:
+  - Construction with various types (lazy, eager, terminal)
+  - Value/rank access and next pointer behavior
+  - Sequence construction (finite and infinite)
   - Lazy evaluation of next
   - Memory management (shared_ptr semantics)
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement RankingElement<T> lazy list node"
+  - Thread safety (concurrent access)
+  - Complex types (strings, vectors, custom types)
+  - Edge cases (single element, same ranks, infinite ranks)
+- [x] All tests passing (38/38 tests)
+- [x] **COMMIT**: "Implement RankingElement<T> lazy list node"
 
 ### 2.2 RankingFunction<T> Iterator
 **File**: `include/ranked_belief/ranking_iterator.hpp`
