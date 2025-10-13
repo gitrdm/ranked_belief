@@ -1,4 +1,22 @@
-# ranked_belief Implementation C### 1.1 Project Structure Setup
+# ranked_belief Implementation Checklist
+
+## Progress Summary (Last Updated: Phase 3.4 Complete)
+
+**Status**: Phase 3 Complete - All core operations implemented
+**Test Count**: 373 tests passing
+**Coverage**: 
+- Phase 1: Foundation (Rank, Promise) ✅
+- Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
+- Phase 3.1: Construction Operations (6 constructors) ✅
+- Phase 3.2: Map Operations (3 variants) ✅
+- Phase 3.3: Filter Operations (3 variants) ✅
+- Phase 3.4: Merge Operations (2 functions) ✅
+
+**Next Phase**: 3.5 Merge-Apply (Applicative) Operation
+
+---
+
+### 1.1 Project Structure Setup
 - [x] Create CMake project structure (CMakeLists.txt at root)
   - Set C++20 requirement: `set(CMAKE_CXX_STANDARD 20)`
   - Add compiler version checks (GCC 10+, Clang 13+, MSVC 19.29+)
@@ -384,16 +402,23 @@ RankingFunction<T> merge_all(const std::vector<RankingFunction<T>>& rankings);
 ```
 
 **Checklist**:
-- [ ] Implement lazy merge maintaining sorted order (by rank)
-- [ ] Combine ranks using min for duplicates
-- [ ] Support n-way merge efficiently
-- [ ] Create `tests/operations/merge_test.cpp`:
+- [x] Implement lazy merge maintaining sorted order (by rank)
+- [x] Combine ranks using min for duplicates
+- [x] Support n-way merge efficiently
+- [x] Create `tests/operations/merge_test.cpp`:
   - Binary merge
   - N-way merge
   - Interleaving behavior
   - Rank combination
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement lazy merge operation"
+- [x] All tests passing
+- [x] **COMMIT**: "Implement lazy merge operation"
+
+**Status**: ✅ Complete (Commit: 9e4f59c)
+- merge() and merge_all() implemented
+- 30 tests covering all scenarios
+- Verified against Racket semantics (seen_rank parameter)
+- Deduplication support (default true)
+- All 373 tests passing
 
 ### 3.5 Merge-Apply (Applicative) Operation
 **File**: `include/ranked_belief/operations/merge_apply.hpp`
