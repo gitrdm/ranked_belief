@@ -1,0 +1,61 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Compiled files
+*.o
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+.eggs/
+*.egg
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rcheck/
+
+# Testing
+Testing/
+CTestTestfile.cmake
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# Documentation
+docs/html/
+docs/latex/
+*.doxygen.log
+
+# macOS
+.DS_Store
+
+# Coverage
+*.gcda
+*.gcno
+*.gcov
+coverage.info
+coverage/
