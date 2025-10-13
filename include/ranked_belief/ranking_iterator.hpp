@@ -242,9 +242,12 @@ private:
      * @note This is only called by operator++ when deduplication is enabled
      */
     void skip_duplicates_of(const T& prev_value) {
-        // Skip forward while current element matches the previous value
-        while (current_ && current_->value() == prev_value) {
-            current_ = current_->next();
+        if constexpr (requires(const T& lhs, const T& rhs) { lhs == rhs; }) {
+            while (current_ && current_->value() == prev_value) {
+                current_ = current_->next();
+            }
+        } else {
+            (void)prev_value;
         }
     }
 
