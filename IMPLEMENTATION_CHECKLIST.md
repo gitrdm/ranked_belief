@@ -83,25 +83,31 @@ class Rank {
 template<typename T>
 class Promise {
   explicit Promise(std::function<T()> computation);
+  explicit Promise(T value);
   Promise(Promise&&) noexcept;
   Promise& operator=(Promise&&) noexcept;
   T& force();
   const T& force() const;
   bool is_forced() const;
+  bool has_value() const;
+  bool has_exception() const;
 };
 ```
 
 **Checklist**:
-- [ ] Implement move-only semantics
-- [ ] Implement thread-safe memoization using `std::call_once`
-- [ ] Handle exceptions from computation function
-- [ ] Create `tests/promise_test.cpp`:
+- [x] Implement move-only semantics
+- [x] Implement thread-safe memoization using `std::call_once`
+- [x] Handle exceptions from computation function
+- [x] Handle forced promise moves (std::once_flag limitation)
+- [x] Create `tests/promise_test.cpp`:
   - Single-threaded force
   - Multi-threaded concurrent force
   - Exception propagation
   - Move semantics
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement Promise<T> with thread-safe memoization"
+  - Complex types (vectors, unique_ptr, custom types)
+  - Reference returns
+- [x] All tests passing (45/45 tests)
+- [x] **COMMIT**: "Implement Promise<T> with thread-safe memoization"
 
 ---
 
@@ -663,9 +669,9 @@ rb_ranking_t* rb_singleton_int(int);          // c_api.h
 
 ## Progress Tracking
 
-**Current Phase**: Phase 1 - Foundation
-**Last Commit**: 24cff58 - Initialize project structure and implement Rank type
-**Test Coverage**: 100% (66/66 tests passing for Rank)
+**Current Phase**: Phase 2 - Core Data Structures
+**Last Commit**: d16b29f - Implement Promise<T> for lazy evaluation
+**Test Coverage**: 100% (111/111 tests passing: 66 Rank + 45 Promise)
 
 ### Completed Items
 ✅ Phase 1.1: Project Structure Setup
@@ -683,6 +689,15 @@ rb_ranking_t* rb_singleton_int(int);          // c_api.h
   - Increment/decrement operators
   - Stream output
   - 66 comprehensive tests (all passing)
+  - Literate Doxygen comments
+
+✅ Phase 1.3: Promise<T> Implementation
+  - Thread-safe lazy evaluation with std::call_once
+  - Move-only semantics
+  - Exception caching and re-throwing
+  - Handles forced promise moves correctly
+  - Helper functions: make_promise, make_promise_value
+  - 45 comprehensive tests (all passing)
   - Literate Doxygen comments
 
 Update this section as you progress through each phase.
