@@ -286,26 +286,58 @@ template<typename T> RankingFunction<T> empty();
 - [x] All tests passing (271/271)
 - [x] **COMMIT**: "Implement construction functions for RankingFunction (Phase 3.1)"
 
-### 3.2 Map Operation
-**File**: `include/ranked_belief/operations/map.hpp`
+### 3.2 Map Operations
+**Files**: 
+- `include/ranked_belief/operations/map.hpp`
+- Modified: `include/ranked_belief/ranking_element.hpp` (added Promise<T> support for lazy values)
 
 **Key Function Signatures**:
 ```cpp
 template<typename T, typename F>
-auto map(const RankingFunction<T>& rf, F func) -> RankingFunction<std::invoke_result_t<F, T>>;
+requires std::invocable<F, const T&>
+auto map(const RankingFunction<T>& rf, F func, bool deduplicate = true) 
+    -> RankingFunction<std::invoke_result_t<F, const T&>>;
+
+template<typename T, typename F>
+requires std::invocable<F, const T&, Rank> && PairReturning<F, T>
+auto map_with_rank(const RankingFunction<T>& rf, F func, bool deduplicate = true) 
+    -> RankingFunction<typename std::invoke_result_t<F, const T&, Rank>::first_type>;
+
+template<typename T, typename F>
+requires std::invocable<F, const T&, size_t>
+auto map_with_index(const RankingFunction<T>& rf, F func, bool deduplicate = true)
+    -> RankingFunction<std::invoke_result_t<F, const T&, size_t>>;
 ```
 
 **Checklist**:
-- [ ] Implement lazy map preserving rank structure
-- [ ] Use Promise<T> for deferred computation
-- [ ] Handle function exceptions properly
-- [ ] Create `tests/operations/map_test.cpp`:
-  - Map with pure functions
-  - Map with type transformations
-  - Lazy evaluation verification
-  - Exception handling
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement lazy map operation"
+- [x] **Architecture Change**: Modified RankingElement for lazy values
+  - Changed `T value_` to `Promise<T> value_` for lazy computation
+  - Added `Promise<T>` constructor overload
+  - Updated `value()` to force Promise (thread-safe memoization)
+  - Maintains backward compatibility with eager constructors
+- [x] Implement `map<T,F>`: Transform values, preserve ranks
+- [x] Implement `map_with_rank<T,F>`: Transform both values and ranks
+- [x] Implement `map_with_index<T,F>`: Transform with index access
+- [x] Use C++20 concepts for type safety (std::invocable, std::invoke_result_t)
+- [x] Full lazy evaluation matching Racket semantics:
+  - map() returns immediately without computation
+  - Values computed only on access (first() or iteration)
+  - Results memoized for efficiency
+  - Thread-safe through Promise guarantees
+- [x] Recursive lambda pattern with shared_ptr (avoid dangling references)
+- [x] Handle function exceptions with proper propagation
+- [x] Create `tests/operations/map_test.cpp` (46 comprehensive tests):
+  - Basic map (empty, single, multiple, rank preservation)
+  - Type transformations (int→string, int→double, int→pair)
+  - Lazy evaluation and memoization verification
+  - Deduplication behavior (with/without, creating new duplicates)
+  - map_with_rank (basic, changing ranks, empty)
+  - map_with_index (basic, rank preservation, empty, indexed pairs)
+  - Exception handling (function throws, propagation)
+  - Chaining/composition (multiple maps, map with index)
+  - Edge cases (identity, constant, large 1000-element sequence, captures)
+- [x] All tests passing (300/300 tests: 271 existing + 29 new)
+- [x] **COMMIT**: "Phase 3.2: Implement lazy map operations with Promise-based values"
 
 ### 3.3 Filter Operation
 **File**: `include/ranked_belief/operations/filter.hpp`
