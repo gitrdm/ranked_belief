@@ -205,25 +205,48 @@ class RankingIterator {
 ```cpp
 template<typename T>
 class RankingFunction {
+  using iterator = RankingIterator<T>;
+  using value_type = std::pair<T, Rank>;
+  
+  RankingFunction();  // Empty constructor
   explicit RankingFunction(std::shared_ptr<RankingElement<T>> head, bool dedup = true);
-  RankingIterator<T> begin() const;
-  RankingIterator<T> end() const;
-  std::optional<std::pair<T, Rank>> first() const;
+  
+  iterator begin() const;
+  iterator end() const;
+  std::optional<value_type> first() const;
   bool is_empty() const;
+  std::size_t size() const;
+  bool is_deduplicating() const;
+  std::shared_ptr<RankingElement<T>> head() const;
+  
+  bool operator==(const RankingFunction&) const;
+  bool operator!=(const RankingFunction&) const;
 };
+
+// Factory functions
+template<typename T> RankingFunction<T> make_empty_ranking();
+template<typename T> RankingFunction<T> make_ranking_function(
+    std::shared_ptr<RankingElement<T>> head, bool deduplicate = true);
+template<typename T> RankingFunction<T> make_singleton_ranking(T value, Rank rank = Rank::zero());
 ```
 
 **Checklist**:
-- [ ] Implement range interface (begin/end)
-- [ ] Store head element and deduplication flag
-- [ ] Implement first(), is_empty() query methods
-- [ ] Create `tests/ranking_function_test.cpp`:
-  - Construction from lazy sequences
-  - Range-based for loop iteration
-  - Query operations
-  - Empty ranking functions
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement RankingFunction<T> core structure"
+- [x] Implement range interface (begin/end returning RankingIterator)
+- [x] Store head element and deduplication flag
+- [x] Implement query methods: first(), is_empty(), size(), is_deduplicating(), head()
+- [x] Implement comparison operators (==, !=)
+- [x] Implement factory functions (make_empty_ranking, make_ranking_function, make_singleton_ranking)
+- [x] Create `tests/ranking_function_test.cpp`:
+  - Construction (empty, from head, factory functions)
+  - Range interface (begin/end, range-based for loops)
+  - Deduplication behavior (with/without, preserving first rank)
+  - Query operations (first, is_empty, size)
+  - Comparison operations (equality, inequality)
+  - Complex types (strings, vectors, pairs)
+  - C++20 ranges (distance, find, transform, count, any_of)
+  - Edge cases (single element, long sequences, const iteration, copy/assignment)
+- [x] All tests passing (46/46 tests)
+- [x] **COMMIT**: "Implement RankingFunction<T> core structure"
 
 ---
 
