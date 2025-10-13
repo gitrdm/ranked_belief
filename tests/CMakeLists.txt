@@ -8,6 +8,7 @@ add_executable(ranked_belief_tests
     ranking_iterator_test.cpp
     ranking_function_test.cpp
     constructors_test.cpp
+    operations/map_test.cpp
 )
 
 target_link_libraries(ranked_belief_tests

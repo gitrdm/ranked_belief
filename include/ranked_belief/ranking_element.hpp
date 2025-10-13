@@ -36,18 +36,19 @@ using LazyNext = Promise<std::shared_ptr<RankingElement<T>>>;
 
 /**
  * @class RankingElement
- * @brief A node in a lazy linked list representing a ranking sequence.
+ * @brief A node in a fully lazy linked list representing a ranking sequence.
  *
  * Each RankingElement contains:
- * - A value of type T
- * - A rank indicating how exceptional/normal the value is
+ * - A lazy value of type T (computed on first access, then memoized)
+ * - A rank indicating how exceptional/normal the value is (stored eagerly)
  * - A lazy pointer to the next element (or nullptr for sequence end)
  *
- * The lazy evaluation of the next pointer is critical for representing infinite
- * sequences efficiently, as elements are only computed when accessed.
+ * The lazy evaluation of both values and the next pointer is critical for
+ * representing infinite sequences efficiently and deferring expensive computations
+ * until they are actually needed.
  *
- * Thread Safety: Individual elements are immutable after construction (value and rank).
- * The next pointer is lazily evaluated and thread-safe due to Promise's guarantees.
+ * Thread Safety: The lazy value and next pointer are thread-safe due to Promise's
+ * guarantees. The rank is immutable after construction.
  *
  * @tparam T The type of values in the ranking sequence.
  *
@@ -62,37 +63,50 @@ using LazyNext = Promise<std::shared_ptr<RankingElement<T>>>;
  *                                                     make_promise_value(elem2));
  * @endcode
  *
- * @invariant value_ and rank_ are immutable after construction.
- * @invariant next_ is evaluated at most once (Promise guarantee).
+ * @invariant rank_ is immutable after construction.
+ * @invariant value_ and next_ are evaluated at most once (Promise guarantee).
  */
 template<typename T>
 class RankingElement {
 public:
     /**
-     * @brief Construct a ranking element with a lazy next pointer.
+     * @brief Construct a ranking element with a lazy value and lazy next pointer.
      *
-     * This is the primary constructor for building lazy sequences. The next
-     * element is provided as a Promise that will be evaluated when accessed.
+     * This is the primary constructor for building fully lazy sequences. Both the
+     * value and next element are provided as Promises that will be evaluated when accessed.
+     *
+     * @param value_promise A promise that produces the value.
+     * @param rank The rank of this value (0 = most normal, higher = more exceptional).
+     * @param next A promise that produces the next element (or nullptr for end).
+     */
+    RankingElement(Promise<T> value_promise, Rank rank, LazyNext<T> next)
+        : value_(std::move(value_promise)), rank_(std::move(rank)), next_(std::move(next)) {}
+    
+    /**
+     * @brief Construct a ranking element with an eager value and lazy next pointer.
+     *
+     * Convenience constructor when the value is already computed. Wraps the value
+     * in a forced promise for uniform handling.
      *
      * @param value The value associated with this rank.
      * @param rank The rank of this value (0 = most normal, higher = more exceptional).
      * @param next A promise that produces the next element (or nullptr for end).
      */
     RankingElement(T value, Rank rank, LazyNext<T> next)
-        : value_(std::move(value)), rank_(std::move(rank)), next_(std::move(next)) {}
+        : value_(make_promise_value(std::move(value))), rank_(std::move(rank)), next_(std::move(next)) {}
 
     /**
-     * @brief Construct a ranking element with an already-known next pointer.
+     * @brief Construct a ranking element with eager value and eager next pointer.
      *
-     * Convenience constructor when the next element is already available
-     * (not lazily computed). Wraps the pointer in a forced promise.
+     * Convenience constructor when both value and next element are already available
+     * (not lazily computed). Wraps both in forced promises for uniform handling.
      *
      * @param value The value associated with this rank.
      * @param rank The rank of this value.
      * @param next Pointer to the next element (or nullptr for end).
      */
     RankingElement(T value, Rank rank, std::shared_ptr<RankingElement<T>> next)
-        : value_(std::move(value)),
+        : value_(make_promise_value(std::move(value))),
           rank_(std::move(rank)),
           next_(make_promise_value(std::move(next))) {}
 
@@ -100,12 +114,13 @@ public:
      * @brief Construct a terminal ranking element (last in sequence).
      *
      * Creates an element with no next element (end of sequence).
+     * Value is eager but wrapped in a promise for uniform handling.
      *
      * @param value The value associated with this rank.
      * @param rank The rank of this value.
      */
     RankingElement(T value, Rank rank)
-        : value_(std::move(value)),
+        : value_(make_promise_value(std::move(value))),
           rank_(std::move(rank)),
           next_(make_promise_value(std::shared_ptr<RankingElement<T>>(nullptr))) {}
 
@@ -119,9 +134,15 @@ public:
     /**
      * @brief Get the value associated with this ranking element.
      *
-     * @return Const reference to the value.
+     * This forces evaluation of the lazy value. The result is memoized,
+     * so subsequent calls return the same value without re-computation.
+     *
+     * Thread Safety: Safe to call from multiple threads concurrently due to
+     * Promise's thread-safe memoization.
+     *
+     * @return Const reference to the (possibly just-computed) value.
      */
-    [[nodiscard]] const T& value() const noexcept { return value_; }
+    [[nodiscard]] const T& value() const { return value_.force(); }
 
     /**
      * @brief Get the rank associated with this value.
@@ -162,9 +183,9 @@ public:
     [[nodiscard]] bool next_is_forced() const noexcept { return next_.is_forced(); }
 
 private:
-    T value_;             ///< The value at this position in the ranking
-    Rank rank_;           ///< The rank of this value
-    mutable LazyNext<T> next_;  ///< Lazy pointer to the next element (mutable for lazy evaluation)
+    mutable Promise<T> value_;  ///< Lazy value (mutable for lazy evaluation, memoized on first access)
+    Rank rank_;                  ///< The rank of this value
+    mutable LazyNext<T> next_;   ///< Lazy pointer to the next element (mutable for lazy evaluation)
 };
 
 /**
