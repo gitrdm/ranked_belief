@@ -59,3 +59,6 @@ docs/latex/
 *.gcov
 coverage.info
 coverage/
+
+# Reference materials (not part of build)
+ranked-programming/

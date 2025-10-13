@@ -11,6 +11,7 @@ add_executable(ranked_belief_tests
     operations/map_test.cpp
     operations/filter_test.cpp
     operations/merge_test.cpp
+    operations/merge_apply_test.cpp
 )
 
 target_link_libraries(ranked_belief_tests

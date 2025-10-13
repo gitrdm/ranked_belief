@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 3.4 Complete)
+## Progress Summary (Last Updated: Phase 3.5 Complete)
 
-**Status**: Phase 3 Complete - All core operations implemented
-**Test Count**: 373 tests passing
+**Status**: Phase 3 In Progress - Merge-Apply implemented, Observe up next
+**Test Count**: 395 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -11,8 +11,9 @@
 - Phase 3.2: Map Operations (3 variants) ✅
 - Phase 3.3: Filter Operations (3 variants) ✅
 - Phase 3.4: Merge Operations (2 functions) ✅
+- Phase 3.5: Merge-Apply Operation ✅
 
-**Next Phase**: 3.5 Merge-Apply (Applicative) Operation
+**Next Phase**: 3.6 Observe Operation
 
 ---
 
@@ -431,16 +432,23 @@ auto merge_apply(const RankingFunction<F>& funcs, const RankingFunction<Args>&..
 ```
 
 **Checklist**:
-- [ ] Implement lazy applicative merge
-- [ ] Apply ranking-of-functions to ranking-of-arguments
-- [ ] Combine ranks using addition
-- [ ] Create `tests/operations/merge_apply_test.cpp`:
+- [x] Implement lazy applicative merge
+- [x] Apply ranking-of-functions to ranking-of-arguments
+- [x] Combine ranks using addition
+- [x] Create `tests/operations/merge_apply_test.cpp`:
   - Single argument application
   - Multi-argument application
   - Rank addition verification
   - Lazy evaluation
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement merge-apply operation"
+- [x] All tests passing
+- [x] **COMMIT**: "Implement merge-apply operation"
+
+**Status**: ✅ Complete — lazy applicative merge defers evaluation via promises, preserves rank ordering, and passes 27 dedicated tests plus the full suite (395 tests).
+
+**Notes**:
+- Introduced `detail::merge_with_ranks` helper to weave function/argument tails lazily.
+- Ensured `merge_apply` composes arbitrary arity with `std::invoke` and propagates moves safely.
+- Verified laziness by counting generator/function invocations in `MergeApplyIsLazy`.
 
 ### 3.6 Observe Operation
 **File**: `include/ranked_belief/operations/observe.hpp`
