@@ -6,6 +6,7 @@ add_executable(ranked_belief_tests
     promise_test.cpp
     ranking_element_test.cpp
     ranking_iterator_test.cpp
+    ranking_function_test.cpp
 )
 
 target_link_libraries(ranked_belief_tests
