@@ -92,6 +92,11 @@ if(RANKED_BELIEF_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
+# Python bindings
+if(RANKED_BELIEF_BUILD_PYTHON_BINDINGS)
+    add_subdirectory(bindings/python)
+endif()
+
 # Installation
 install(DIRECTORY include/ranked_belief
     DESTINATION include

@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 6.2 In Progress)
+## Progress Summary (Last Updated: Phase 7.1 In Progress)
 
-**Status**: Phase 6.2 In Progress – C-facing façade with opaque handles, lazy map/filter callbacks, and merge/observe support implemented and under review
-**Test Count**: 434 tests passing
+**Status**: Phase 7.1 In Progress – Pybind11 toolchain wired into CMake with package scaffold and pytest smoke harness awaiting final review
+**Test Count**: 435 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -20,9 +20,10 @@
 - Phase 5.2: Examples ✅
 - Phase 5.3: Documentation ✅
 - Phase 6.1: Type Erasure Layer ✅
-- Phase 6.2: C API ⏳ (header/implementation/tests authored; pending final commit gate)
+- Phase 6.2: C API ✅
+- Phase 7.1: Pybind11 Setup ⏳ (CMake + package + pytest scaffold staged)
 
-**Next Phase**: 6.2 C API (finalise & commit)
+**Next Phase**: 7.1 Pybind11 Setup (finalise & commit)
 
 ---
 
@@ -668,10 +669,10 @@ void rb_ranking_free(rb_ranking_t *ranking);
   - Pure C test binary exercising map, filter, merge, observe, take, null operands, and callback failures
   - Custom macros to avoid unused-variable warnings under `-Werror`
   - Verifies laziness counters and buffer error reporting
-- [x] All tests passing (ctest: 434/434)
-- [ ] **COMMIT**: "Implement C API for FFI compatibility"
+- [x] All tests passing (ctest: 435/435)
+- [x] **COMMIT**: "Implement C API for FFI compatibility"
 
-**Status**: ⏳ In Progress — Library build targets, public header, and C test suite in place; ready for documentation polish and final commit gate.
+**Status**: ✅ Complete — C-compatible façade merged with exhaustive tests and promoted to master.
 
 ---
 
@@ -681,10 +682,12 @@ void rb_ranking_free(rb_ranking_t *ranking);
 **File**: `bindings/python/CMakeLists.txt`
 
 **Checklist**:
-- [ ] Configure pybind11 in CMake
-- [ ] Create Python module structure
-- [ ] Set up pytest infrastructure
+- [x] Configure pybind11 in CMake
+- [x] Create Python module structure
+- [x] Set up pytest infrastructure
 - [ ] **COMMIT**: "Configure pybind11 build system"
+
+**Status**: ⏳ In Progress — Binding scaffold builds cleanly with pytest smoke coverage; awaiting documentation polish and commit.
 
 ### 7.2 Core Bindings
 **File**: `bindings/python/ranked_belief.cpp`
