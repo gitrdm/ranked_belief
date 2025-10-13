@@ -257,23 +257,34 @@ template<typename T> RankingFunction<T> make_singleton_ranking(T value, Rank ran
 
 **Key Function Signatures**:
 ```cpp
-template<typename T> RankingFunction<T> singleton(T value);
-template<typename T> RankingFunction<T> uniform(std::vector<T> values);
-template<typename T, typename Gen> RankingFunction<T> from_generator(Gen generator);
+template<typename T> RankingFunction<T> from_list(std::vector<std::pair<T, Rank>>, bool deduplicate);
+template<typename T> RankingFunction<T> from_values_uniform(std::vector<T>, Rank rank, bool deduplicate);
+template<typename T> RankingFunction<T> from_values_sequential(std::vector<T>, Rank start_rank, bool deduplicate);
+template<typename T, typename F> RankingFunction<T> from_values_with_ranker(std::vector<T>, F rank_fn, bool deduplicate);
+template<typename T, typename F> RankingFunction<T> from_generator(F generator, size_t start_index, bool deduplicate);
+template<typename R> auto from_range(R&& range, Rank start_rank, bool deduplicate);
+template<typename R> auto from_pair_range(R&& range, bool deduplicate);
+template<typename T> RankingFunction<T> singleton(T value, Rank rank);
 template<typename T> RankingFunction<T> empty();
 ```
 
 **Checklist**:
-- [ ] Implement singleton (rank 0)
-- [ ] Implement uniform (all same rank)
-- [ ] Implement from_generator for lazy infinite sequences
-- [ ] Implement empty ranking
-- [ ] Create `tests/constructors_test.cpp`:
-  - All constructor variants
-  - Type deduction
+- [x] Implement from_list (value-rank pairs)
+- [x] Implement from_values_uniform (all same rank)
+- [x] Implement from_values_sequential (sequential ranks)
+- [x] Implement from_values_with_ranker (custom rank function with C++20 concepts)
+- [x] Implement from_generator for lazy infinite sequences
+- [x] Implement from_range (C++20 ranges integration)
+- [x] Implement from_pair_range (handles std::map const keys)
+- [x] Implement singleton/empty convenience aliases
+- [x] Create `tests/constructors_test.cpp`:
+  - All constructor variants (58 tests)
+  - Type deduction tests
   - Lazy behavior verification
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement ranking construction functions"
+  - C++20 ranges integration (filter, transform)
+  - Edge cases (empty, large sequences, complex types)
+- [x] All tests passing (271/271)
+- [x] **COMMIT**: "Implement construction functions for RankingFunction (Phase 3.1)"
 
 ### 3.2 Map Operation
 **File**: `include/ranked_belief/operations/map.hpp`
@@ -725,9 +736,9 @@ rb_ranking_t* rb_singleton_int(int);          // c_api.h
 
 ## Progress Tracking
 
-**Current Phase**: Phase 2 - Core Data Structures
-**Last Commit**: d16b29f - Implement Promise<T> for lazy evaluation
-**Test Coverage**: 100% (111/111 tests passing: 66 Rank + 45 Promise)
+**Current Phase**: Phase 3 - Core Operations
+**Last Commit**: 6dffe87 - Implement construction functions for RankingFunction (Phase 3.1)
+**Test Coverage**: 100% (271/271 tests passing: 66 Rank + 45 Promise + 38 RankingElement + 35 RankingIterator + 46 RankingFunction + 41 Constructors)
 
 ### Completed Items
 ✅ Phase 1.1: Project Structure Setup
@@ -754,6 +765,37 @@ rb_ranking_t* rb_singleton_int(int);          // c_api.h
   - Handles forced promise moves correctly
   - Helper functions: make_promise, make_promise_value
   - 45 comprehensive tests (all passing)
+  - Literate Doxygen comments
+
+✅ Phase 2.1: RankingElement<T> Implementation
+  - Lazy linked list node with Promise-based next pointer
+  - Helper functions: make_terminal, make_element, make_lazy_element
+  - make_infinite_sequence for infinite lazy sequences
+  - 38 comprehensive tests (all passing)
+  - Literate Doxygen comments
+
+✅ Phase 2.2: RankingIterator<T> Implementation
+  - C++20 input_iterator with std::input_iterator_tag
+  - Optional deduplication (preserves first occurrence)
+  - Works with std::ranges algorithms
+  - 35 comprehensive tests (all passing)
+  - Literate Doxygen comments
+
+✅ Phase 2.3: RankingFunction<T> Implementation
+  - Main user-facing API with range interface (begin/end)
+  - Query methods: first, is_empty, size
+  - Factory functions: make_empty_ranking, make_ranking_function, make_singleton_ranking
+  - 46 comprehensive tests (all passing)
+  - Literate Doxygen comments
+
+✅ Phase 3.1: Construction Functions Implementation
+  - from_list, from_values_uniform, from_values_sequential
+  - from_values_with_ranker with C++20 concepts
+  - from_generator for infinite sequences
+  - from_range with C++20 ranges integration
+  - from_pair_range handling std::map const keys
+  - singleton/empty convenience aliases
+  - 41 comprehensive tests (all passing)
   - Literate Doxygen comments
 
 Update this section as you progress through each phase.
