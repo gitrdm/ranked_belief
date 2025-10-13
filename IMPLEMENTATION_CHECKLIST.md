@@ -443,7 +443,7 @@ auto merge_apply(const RankingFunction<F>& funcs, const RankingFunction<Args>&..
 - [x] All tests passing
 - [x] **COMMIT**: "Implement merge-apply operation"
 
-**Status**: ✅ Complete — lazy applicative merge defers evaluation via promises, preserves rank ordering, and passes 27 dedicated tests plus the full suite (395 tests).
+**Status**: ✅ Complete — lazy applicative merge defers evaluation via promises, preserves rank ordering, and passes 27 dedicated tests plus the full suite (395 tests). See commit "Implement merge-apply operation".
 
 **Notes**:
 - Introduced `detail::merge_with_ranks` helper to weave function/argument tails lazily.
