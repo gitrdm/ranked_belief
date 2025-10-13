@@ -3,6 +3,7 @@
 # Create test executable
 add_executable(ranked_belief_tests
     rank_test.cpp
+    promise_test.cpp
 )
 
 target_link_libraries(ranked_belief_tests
