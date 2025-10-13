@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 4.1 Complete)
+## Progress Summary (Last Updated: Phase 4.2 Complete)
 
-**Status**: Phase 4 In Progress – Autocast delivered, Operator overloads up next
-**Test Count**: 418 tests passing
+**Status**: Phase 4 Complete – Operator overloads landed with full docs and tests
+**Test Count**: 423 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -15,8 +15,9 @@
 - Phase 3.6: Observe Operation ✅
 - Phase 3.7: Normal/Exceptional Operations ✅
 - Phase 4.1: Autocast Mechanism ✅
+- Phase 4.2: Operator Overloads ✅
 
-**Next Phase**: 4.2 Operator Overloads
+**Next Phase**: 5.1 Integration Tests
 
 ---
 
@@ -550,16 +551,18 @@ auto operator+(const RankingFunction<T>& lhs, U&& rhs);
 ```
 
 **Checklist**:
-- [ ] Implement arithmetic operators using merge_apply
-- [ ] Implement comparison operators
-- [ ] Support mixed ranked/non-ranked operands via autocast
-- [ ] Create `tests/operators_test.cpp`:
+- [x] Implement arithmetic operators using merge_apply
+- [x] Implement comparison operators
+- [x] Support mixed ranked/non-ranked operands via autocast
+- [x] Create `tests/operators_test.cpp`:
   - Arithmetic with two rankings
   - Arithmetic with ranking and scalar
   - Comparison operators
-  - Type promotion
-- [ ] All tests passing
+  - Type promotion and laziness safeguards
+- [x] All tests passing (423/423)
 - [ ] **COMMIT**: "Implement operator overloads with autocast"
+
+**Status**: ✅ Complete — Added `combine_binary` with autocast lifting and lazy cartesian merges, implemented the full suite of arithmetic and comparison overloads with Doxygen coverage, and expanded operator tests to cover scalar mixing, ordering, boolean collapse, and generator laziness.
 
 ---
 
