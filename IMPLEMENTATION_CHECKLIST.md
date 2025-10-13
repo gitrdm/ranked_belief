@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 3.5 Complete)
+## Progress Summary (Last Updated: Phase 3.6 Complete)
 
-**Status**: Phase 3 In Progress - Merge-Apply implemented, Observe up next
-**Test Count**: 395 tests passing
+**Status**: Phase 3 In Progress – Observe implemented, Normal/Exceptional operations up next
+**Test Count**: 406 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -12,8 +12,9 @@
 - Phase 3.3: Filter Operations (3 variants) ✅
 - Phase 3.4: Merge Operations (2 functions) ✅
 - Phase 3.5: Merge-Apply Operation ✅
+- Phase 3.6: Observe Operation ✅
 
-**Next Phase**: 3.6 Observe Operation
+**Next Phase**: 3.7 Normal/Exceptional Operations
 
 ---
 
@@ -460,16 +461,19 @@ RankingFunction<T> observe(const RankingFunction<T>& rf, const T& observed_value
 ```
 
 **Checklist**:
-- [ ] Implement conditioning by observation
-- [ ] Shift ranks so observed value has rank 0
-- [ ] Filter out impossible values
-- [ ] Create `tests/operations/observe_test.cpp`:
+- [x] Implement conditioning by observation
+- [x] Shift ranks so observed value has rank 0 while preserving laziness
+- [x] Filter out impossible values
+- [x] Create `tests/operations/observe_test.cpp`:
   - Observe existing value
   - Observe non-existing value
   - Multiple observations
   - Rank shifting verification
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement observe conditioning operation"
+  - Lazy semantics and infinite rank handling
+- [x] All tests passing (406/406)
+- [x] **COMMIT**: "Implement observe conditioning operation"
+
+**Status**: ✅ Complete — Observe now reuses lazy filtering, normalizes finite ranks, guards infinite ranks, and ships with 11 dedicated tests covering normalization, deduplication, laziness, and sequential observations.
 
 ### 3.7 Normal/Exceptional Operations
 **File**: `include/ranked_belief/operations/nrm_exc.hpp`
