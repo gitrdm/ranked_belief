@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 4.2 Complete)
+## Progress Summary (Last Updated: Phase 5.1 Complete)
 
-**Status**: Phase 4 Complete – Operator overloads landed with full docs and tests
-**Test Count**: 423 tests passing
+**Status**: Phase 5.1 Complete – Integration scenarios cover Monty Hall, dice aggregation, and Fibonacci laziness
+**Test Count**: 426 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -16,8 +16,9 @@
 - Phase 3.7: Normal/Exceptional Operations ✅
 - Phase 4.1: Autocast Mechanism ✅
 - Phase 4.2: Operator Overloads ✅
+- Phase 5.1: Integration Tests ✅
 
-**Next Phase**: 5.1 Integration Tests
+**Next Phase**: 5.2 Examples
 
 ---
 
@@ -572,12 +573,14 @@ auto operator+(const RankingFunction<T>& lhs, U&& rhs);
 **File**: `tests/integration_test.cpp`
 
 **Checklist**:
-- [ ] Implement monty_hall_test (three doors problem)
-- [ ] Implement dice_sum_test (sum of two dice)
-- [ ] Implement recursive_sequence_test (Fibonacci-like)
-- [ ] Verify results match expected rank distributions
-- [ ] All tests passing
-- [ ] **COMMIT**: "Add integration tests for core scenarios"
+- [x] Implement monty_hall_test (three doors problem)
+- [x] Implement dice_sum_test (sum of two dice)
+- [x] Implement recursive_sequence_test (Fibonacci-like)
+- [x] Verify results match expected rank distributions
+- [x] All tests passing
+- [x] **COMMIT**: "Add integration tests for core scenarios"
+
+**Status**: ✅ Complete — Added `integration_test.cpp` covering Monty Hall posterior ranking, dice sum combinatorics with laziness checks, and Fibonacci generation via lazy generator memoisation. Test suite now counts 426 cases.
 
 ### 5.2 Examples
 **Files**: `examples/boolean_circuit.cpp`, `examples/recursion.cpp`
