@@ -1,8 +1,8 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 5.1 Complete)
+## Progress Summary (Last Updated: Phase 5.2 Complete)
 
-**Status**: Phase 5.1 Complete – Integration scenarios cover Monty Hall, dice aggregation, and Fibonacci laziness
+**Status**: Phase 5.2 Complete – Example executables mirror the Racket boolean circuit and recursion programs while preserving lazy semantics
 **Test Count**: 426 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
@@ -17,8 +17,9 @@
 - Phase 4.1: Autocast Mechanism ✅
 - Phase 4.2: Operator Overloads ✅
 - Phase 5.1: Integration Tests ✅
+- Phase 5.2: Examples ✅
 
-**Next Phase**: 5.2 Examples
+**Next Phase**: 5.3 Documentation
 
 ---
 
@@ -586,11 +587,13 @@ auto operator+(const RankingFunction<T>& lhs, U&& rhs);
 **Files**: `examples/boolean_circuit.cpp`, `examples/recursion.cpp`
 
 **Checklist**:
-- [ ] Port boolean_circuit.rkt to C++
-- [ ] Port recursion.rkt to C++
-- [ ] Add README.md in examples/ with build instructions
-- [ ] Verify examples compile and produce correct output
-- [ ] **COMMIT**: "Add C++ example programs"
+- [x] Port boolean_circuit.rkt to C++
+- [x] Port recursion.rkt to C++
+- [x] Add README.md in examples/ with build instructions
+- [x] Verify examples compile and produce correct output
+- [x] **COMMIT**: "Add C++ example programs"
+
+**Status**: ✅ Complete — C++ examples now mirror the original Racket demonstrations, showcasing lazy diagnosis of the boolean circuit and the recursive ranked chain. Both executables build via CMake, emit ranked outputs, and report forced tails to make laziness explicit.
 
 ### 5.3 Documentation
 **Files**: `README.md`, `docs/API.md`
