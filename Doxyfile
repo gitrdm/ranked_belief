@@ -1,0 +1,60 @@
+# Doxyfile for ranked_belief
+
+PROJECT_NAME           = "ranked_belief"
+PROJECT_BRIEF          = "Lazy ranking functions for epistemic reasoning in C++20"
+OUTPUT_DIRECTORY       = build/docs
+CREATE_SUBDIRS         = YES
+
+INPUT                  = README.md \
+                         docs/API.md \
+                         include \
+                         examples
+FILE_PATTERNS          = *.hpp \
+                         *.h \
+                         *.cpp \
+                         *.md
+RECURSIVE              = YES
+
+EXCLUDE                = ranked-programming \
+                         CPP_PORT_DESIGN.md \
+                         examples/README.md
+
+USE_MDFILE_AS_MAINPAGE = README.md
+MARKDOWN_SUPPORT       = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+INLINE_SOURCES         = YES
+SOURCE_BROWSER         = YES
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_NO_PARAMDOC       = YES
+XML_OUTPUT             = xml
+GENERATE_XML           = NO
+
+FULL_PATH_NAMES        = NO
+STRIP_FROM_INC_PATH    = include
+
+QUIET                  = NO
+WARNINGS               = YES
+WARN_LOGFILE           = build/docs/doxygen-warnings.log
+
+DOT_GRAPH_MAX_NODES    = 100
+HAVE_DOT               = YES
+DOT_IMAGE_FORMAT       = svg
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+# Treat Markdown code fences as C++ examples
+DOXYFILE_ENCODING      = UTF-8
+ALPHABETICAL_INDEX     = YES
+GENERATE_TREEVIEW      = YES

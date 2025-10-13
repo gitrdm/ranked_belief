@@ -120,7 +120,7 @@ template<typename T>
  * @brief Apply a function to each element and merge all resulting ranking functions.
  *
  * For each value `v` at rank `r` in the input ranking function, applies `func(v)`
- * which must return a RankingFunction<U>. All resulting ranking functions are
+ * which must return a RankingFunction\<U\>. All resulting ranking functions are
  * merged together, with their ranks shifted by `r` (added to the original ranks).
  *
  * This is the core operation for monadic composition of ranking functions,
@@ -137,10 +137,10 @@ template<typename T>
  * - Fully lazy evaluation
  *
  * @tparam T The input value type.
- * @tparam Func The function type (must return RankingFunction<U>).
+ * @tparam Func The function type (must return RankingFunction\<U\>).
  * @tparam U The output value type (deduced from Func return type).
  * @param rf The input ranking function.
- * @param func A function taking const T& and returning RankingFunction<U>.
+ * @param func A function taking const T& and returning RankingFunction\<U\>.
  * @param deduplicate Whether to deduplicate the result (default: true).
  * @return A new ranking function containing all merged results.
  *
@@ -236,10 +236,10 @@ namespace detail {
      * lazy evaluation.
      *
      * @tparam T The value type.
-     * @param elem1 First element of first sequence (may be null).
-     * @param rank1 Rank of first element (infinity if null).
-     * @param elem2 First element of second sequence (may be null).
-     * @param rank2 Rank of first element (infinity if null).
+    * @param first First element of the primary sequence (may be null).
+    * @param first_rank Rank of the primary element (infinity if @p first is null).
+    * @param second_promise Lazy thunk that can produce the head of the secondary sequence.
+    * @param second_min_rank Lowest possible rank available from the secondary sequence.
      * @return Lazily merged sequence head.
      */
     template<typename T>
