@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 6.1 Complete)
+## Progress Summary (Last Updated: Phase 6.2 In Progress)
 
-**Status**: Phase 6.1 Complete – Type erasure façade delivered with lazy-preserving operations, equality safeguards, and a dedicated test suite
-**Test Count**: 433 tests passing
+**Status**: Phase 6.2 In Progress – C-facing façade with opaque handles, lazy map/filter callbacks, and merge/observe support implemented and under review
+**Test Count**: 434 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -20,8 +20,9 @@
 - Phase 5.2: Examples ✅
 - Phase 5.3: Documentation ✅
 - Phase 6.1: Type Erasure Layer ✅
+- Phase 6.2: C API ⏳ (header/implementation/tests authored; pending final commit gate)
 
-**Next Phase**: 6.2 C API
+**Next Phase**: 6.2 C API (finalise & commit)
 
 ---
 
@@ -66,14 +67,14 @@ When context window resets:
 ## Phase 1: Foundation (Weeks 1-2)
 
 ### 1.1 Project Structure Setup
-- [ ] Create CMake project structure (CMakeLists.txt at root)
+- [x] Create CMake project structure (CMakeLists.txt at root)
   - Set C++20 requirement: `set(CMAKE_CXX_STANDARD 20)`
   - Add compiler version checks (GCC 10+, Clang 13+, MSVC 19.29+)
-- [ ] Create directory structure: `include/ranked_belief/`, `src/`, `tests/`, `bindings/`
-- [ ] Configure Google Test integration in CMake
-- [ ] Create `.clang-format` with project style
-- [ ] Initialize git repository with `.gitignore`
-- [ ] **COMMIT**: "Initialize project structure"
+- [x] Create directory structure: `include/ranked_belief/`, `src/`, `tests/`, `bindings/`
+- [x] Configure Google Test integration in CMake
+- [x] Create `.clang-format` with project style
+- [x] Initialize git repository with `.gitignore`
+- [x] **COMMIT**: "Initialize project structure"
 
 ### 1.2 Rank Type Implementation
 **File**: `include/ranked_belief/rank.hpp`
@@ -564,7 +565,7 @@ auto operator+(const RankingFunction<T>& lhs, U&& rhs);
   - Comparison operators
   - Type promotion and laziness safeguards
 - [x] All tests passing (423/423)
-- [ ] **COMMIT**: "Implement operator overloads with autocast"
+- [x] **COMMIT**: "Implement operator overloads with autocast"
 
 **Status**: ✅ Complete — Added `combine_binary` with autocast lifting and lazy cartesian merges, implemented the full suite of arithmetic and comparison overloads with Doxygen coverage, and expanded operator tests to cover scalar mixing, ordering, boolean collapse, and generator laziness.
 
@@ -640,24 +641,37 @@ class RankingFunctionAny {
 **File**: `include/ranked_belief/c_api.h`, `src/c_api.cpp`
 
 **Key Function Signatures**:
-```cpp
-// C API (extern "C")
+```c
+typedef enum rb_status rb_status;
 typedef struct rb_ranking_t rb_ranking_t;
-rb_ranking_t* rb_singleton_int(int value);
-rb_ranking_t* rb_map(rb_ranking_t* rf, void* func, void* context);
-void rb_ranking_free(rb_ranking_t* rf);
+
+typedef rb_status (*rb_map_callback_t)(int input_value, void *context, int *output_value);
+typedef rb_status (*rb_filter_callback_t)(int input_value, void *context, int *keep);
+
+rb_status rb_singleton_int(int value, rb_ranking_t **out_ranking);
+rb_status rb_from_array_int(const int *values, const uint64_t *ranks, size_t count, rb_ranking_t **out_ranking);
+rb_status rb_map_int(const rb_ranking_t *ranking, rb_map_callback_t callback, void *context, rb_ranking_t **out_ranking);
+rb_status rb_filter_int(const rb_ranking_t *ranking, rb_filter_callback_t callback, void *context, rb_ranking_t **out_ranking);
+rb_status rb_merge_int(const rb_ranking_t *lhs, const rb_ranking_t *rhs, rb_ranking_t **out_ranking);
+rb_status rb_observe_value_int(const rb_ranking_t *ranking, int value, rb_ranking_t **out_ranking);
+rb_status rb_is_empty(const rb_ranking_t *ranking, int *out_is_empty);
+rb_status rb_first_int(const rb_ranking_t *ranking, int *out_value, uint64_t *out_rank, int *out_has_value);
+rb_status rb_take_n_int(const rb_ranking_t *ranking, size_t n, int *out_values, uint64_t *out_ranks, size_t buffer_size, size_t *out_count);
+void rb_ranking_free(rb_ranking_t *ranking);
 ```
 
 **Checklist**:
-- [ ] Define opaque handle types
-- [ ] Implement C wrappers for core operations
-- [ ] Implement proper error handling (return codes)
-- [ ] Create `tests/c_api_test.c`:
-  - C language test file
-  - Test all C API functions
-  - Memory leak verification
-- [ ] All tests passing
+- [x] Define opaque handle types (`rb_ranking_t`) and status/ callback interfaces (`rb_status`, `rb_map_callback_t`, `rb_filter_callback_t`)
+- [x] Implement C wrappers for core operations with lazy semantics preserved (`rb_map_int`, `rb_filter_int`, `rb_merge_int`, `rb_observe_value_int`, `rb_take_n_int`, etc.)
+- [x] Implement proper error handling (status translation, buffer validation, callback propagation)
+- [x] Create `tests/c_api_test.c`:
+  - Pure C test binary exercising map, filter, merge, observe, take, null operands, and callback failures
+  - Custom macros to avoid unused-variable warnings under `-Werror`
+  - Verifies laziness counters and buffer error reporting
+- [x] All tests passing (ctest: 434/434)
 - [ ] **COMMIT**: "Implement C API for FFI compatibility"
+
+**Status**: ⏳ In Progress — Library build targets, public header, and C test suite in place; ready for documentation polish and final commit gate.
 
 ---
 

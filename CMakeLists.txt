@@ -1,10 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
-project(ranked_belief VERSION 1.0.0 LANGUAGES CXX)
+project(ranked_belief VERSION 1.0.0 LANGUAGES C CXX)
 
 # Require C++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Require C11 for C-facing components
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 # Compiler version checks
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -51,6 +56,21 @@ target_include_directories(ranked_belief INTERFACE
 )
 target_compile_features(ranked_belief INTERFACE cxx_std_20)
 
+# C API library (bridges ranked_belief to pure C consumers)
+add_library(ranked_belief_c_api STATIC
+    src/c_api.cpp
+)
+target_link_libraries(ranked_belief_c_api
+    PUBLIC
+        ranked_belief
+)
+target_include_directories(ranked_belief_c_api
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_compile_features(ranked_belief_c_api PUBLIC cxx_std_20)
+
 # Google Test integration
 if(RANKED_BELIEF_BUILD_TESTS)
     include(FetchContent)
@@ -75,10 +95,12 @@ endif()
 # Installation
 install(DIRECTORY include/ranked_belief
     DESTINATION include
-    FILES_MATCHING PATTERN "*.hpp"
+    FILES_MATCHING
+        PATTERN "*.hpp"
+        PATTERN "*.h"
 )
 
-install(TARGETS ranked_belief
+install(TARGETS ranked_belief ranked_belief_c_api
     EXPORT ranked_belief-targets
     INCLUDES DESTINATION include
 )

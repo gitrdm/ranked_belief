@@ -30,3 +30,18 @@ target_link_libraries(ranked_belief_tests
 # Enable testing
 include(GoogleTest)
 gtest_discover_tests(ranked_belief_tests)
+
+# Pure C API conformance tests
+add_executable(ranked_belief_c_api_test
+    c_api_test.c
+)
+target_include_directories(ranked_belief_c_api_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(ranked_belief_c_api_test
+    PRIVATE
+        ranked_belief_c_api
+)
+set_target_properties(ranked_belief_c_api_test PROPERTIES LINKER_LANGUAGE CXX)
+add_test(NAME ranked_belief_c_api_test COMMAND ranked_belief_c_api_test)
