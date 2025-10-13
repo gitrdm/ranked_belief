@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 5.3 Complete)
+## Progress Summary (Last Updated: Phase 6.1 Complete)
 
-**Status**: Phase 5.3 Complete – Documentation, API guide, and Doxygen configuration published alongside regenerated HTML docs
-**Test Count**: 426 tests passing
+**Status**: Phase 6.1 Complete – Type erasure façade delivered with lazy-preserving operations, equality safeguards, and a dedicated test suite
+**Test Count**: 433 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -19,8 +19,9 @@
 - Phase 5.1: Integration Tests ✅
 - Phase 5.2: Examples ✅
 - Phase 5.3: Documentation ✅
+- Phase 6.1: Type Erasure Layer ✅
 
-**Next Phase**: 6.1 Type Erasure Layer
+**Next Phase**: 6.2 C API
 
 ---
 
@@ -624,14 +625,16 @@ class RankingFunctionAny {
 ```
 
 **Checklist**:
-- [ ] Implement type-erased wrapper using std::any
-- [ ] Implement type-erased versions of all operations
-- [ ] Create `tests/type_erasure_test.cpp`:
+- [x] Implement type-erased wrapper using std::any
+- [x] Implement type-erased versions of all operations
+- [x] Create `tests/type_erasure_test.cpp`:
   - Wrap various types
   - Type-erased operations
   - Type recovery
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement type erasure layer"
+- [x] All tests passing
+- [x] **COMMIT**: "Implement type erasure layer"
+
+**Status**: ✅ Complete — Added `RankingFunctionAny` concept/model façade with Doxygen documentation, guarded deduplication for non-equality payloads, full lazy delegation (`map`, `filter`, `merge`, `merge_apply`, `observe`, `take_n`), and a GoogleTest suite validating wrapping, heterogenous merges, type recovery, and laziness counters.
 
 ### 6.2 C API
 **File**: `include/ranked_belief/c_api.h`, `src/c_api.cpp`
