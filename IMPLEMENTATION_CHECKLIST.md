@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 7.1 In Progress)
+## Progress Summary (Last Updated: Phase 7.2 Complete)
 
-**Status**: Phase 7.1 In Progress – Pybind11 toolchain wired into CMake with package scaffold and pytest smoke harness awaiting final review
-**Test Count**: 435 tests passing
+**Status**: Phase 7.2 Complete – Python bindings expose the core lazy API with dynamic loading support; pytest and CTest suites are all green
+**Test Count**: 435 CTest targets (including Python bindings) / 15 pytest cases passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -21,9 +21,10 @@
 - Phase 5.3: Documentation ✅
 - Phase 6.1: Type Erasure Layer ✅
 - Phase 6.2: C API ✅
-- Phase 7.1: Pybind11 Setup ⏳ (CMake + package + pytest scaffold staged)
+- Phase 7.1: Pybind11 Setup ✅
+- Phase 7.2: Python Core Bindings ✅
 
-**Next Phase**: 7.1 Pybind11 Setup (finalise & commit)
+**Next Phase**: 7.3 Python Examples & Docs
 
 ---
 
@@ -685,41 +686,44 @@ void rb_ranking_free(rb_ranking_t *ranking);
 - [x] Configure pybind11 in CMake
 - [x] Create Python module structure
 - [x] Set up pytest infrastructure
-- [ ] **COMMIT**: "Configure pybind11 build system"
+- [x] **COMMIT**: "Configure pybind11 build system"
 
-**Status**: ⏳ In Progress — Binding scaffold builds cleanly with pytest smoke coverage; awaiting documentation polish and commit.
+**Status**: ✅ Complete — Build system wires pybind11, packages sources into the build tree, and registers pytest with CTest.
 
 ### 7.2 Core Bindings
-**File**: `bindings/python/ranked_belief.cpp`
+**Files**: `bindings/python/src/module.cpp`, `bindings/python/ranked_belief/__init__.py`, `bindings/python/tests/test_core.py`
 
 **Key Bindings**:
 ```cpp
-py::class_<Rank>(m, "Rank")
-  .def_static("zero", &Rank::zero)
-  .def("is_infinity", &Rank::is_infinity);
+PYBIND11_MODULE(_ranked_belief_core, m) {
+  py::class_<rb::Rank>(m, "Rank")
+    .def_static("zero", &rb::Rank::zero)
+    .def("is_infinity", &rb::Rank::is_infinity)
+    .def(py::self + py::self);
 
-py::class_<RankingFunction<int>>(m, "RankingFunctionInt")
-  .def("map", &RankingFunction<int>::map<...>)
-  .def("filter", &RankingFunction<int>::filter<...>);
+  bind_ranking_function<int>(m, "RankingFunctionInt", "int");
+  bind_ranking_function<double>(m, "RankingFunctionFloat", "float");
+  bind_ranking_function<std::string>(m, "RankingFunctionString", "str");
+}
 ```
 
 **Checklist**:
-- [ ] Bind Rank class
-- [ ] Bind RankingFunction<int>, RankingFunction<double>, RankingFunction<std::string>
-- [ ] Bind construction functions
-- [ ] Bind operations (map, filter, merge, etc.)
-- [ ] Create `bindings/python/tests/test_core.py`:
-  - Test all bound operations
-  - Test Python lambda functions
-  - Test error handling
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement Python core bindings"
+- [x] Bind `Rank` class with arithmetic, comparison, and utility helpers
+- [x] Bind `RankingFunction<T>` specialisations for `int`, `float`, and `str`
+- [x] Expose construction helpers (`from_list`, generators, singleton, etc.)
+- [x] Expose lazy operations (map, filter, take, merge, merge_apply, observe, materialize)
+- [x] Implement dynamic package loader with fallback path search in `ranked_belief/__init__.py`
+- [x] Create `bindings/python/tests/test_core.py` covering lazy semantics, merging, observation, and error propagation
+- [x] Ensure pytest suite executes via CTest and passes alongside C++ tests
+- [x] **COMMIT**: "Implement Python core bindings"
+
+**Status**: ✅ Complete — Python API mirrors C++ lazy behaviour, handles mixed source/build import scenarios, and ships with passing pytest coverage.
 
 ### 7.3 Python Examples & Docs
 **Files**: `bindings/python/examples/`, `bindings/python/README.md`
 
 **Checklist**:
-- [ ] Port examples to Python
+- [ ] Port all Racket programming examples to Python
 - [ ] Write Python tutorial
 - [ ] Add type stubs (.pyi files) for IDE support
 - [ ] **COMMIT**: "Complete Python bindings with examples"

@@ -25,6 +25,9 @@ add_custom_target(ranked_belief_python_package ALL
 # Build the extension module
 pybind11_add_module(_ranked_belief_core MODULE src/module.cpp)
 target_link_libraries(_ranked_belief_core PRIVATE ranked_belief)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(_ranked_belief_core PRIVATE -static-libstdc++ -static-libgcc)
+endif()
 set_target_properties(_ranked_belief_core PROPERTIES
     OUTPUT_NAME "_ranked_belief_core"
     LIBRARY_OUTPUT_DIRECTORY "${RB_PY_BUILD_PACKAGE_DIR}"
@@ -42,7 +45,7 @@ if(RANKED_BELIEF_PYTEST_EXECUTABLE)
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         )
         set_tests_properties(ranked_belief_python_tests PROPERTIES
-            ENVIRONMENT "PYTHONPATH=${RB_PY_BUILD_PACKAGE_DIR}:${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}"
+            ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}"
         )
 else()
     message(WARNING "pytest not found; Python binding tests will be skipped.")
