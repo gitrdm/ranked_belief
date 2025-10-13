@@ -45,7 +45,7 @@ if(RANKED_BELIEF_PYTEST_EXECUTABLE)
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         )
         set_tests_properties(ranked_belief_python_tests PROPERTIES
-            ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}"
+            ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_CURRENT_SOURCE_DIR}:${RB_PY_BUILD_PACKAGE_DIR}:$ENV{PYTHONPATH}"
         )
 else()
     message(WARNING "pytest not found; Python binding tests will be skipped.")

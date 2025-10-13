@@ -3,8 +3,11 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <any>
+#include <optional>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ranked_belief/constructors.hpp"
@@ -16,11 +19,129 @@
 #include "ranked_belief/operations/observe.hpp"
 #include "ranked_belief/rank.hpp"
 #include "ranked_belief/ranking_function.hpp"
+#include "ranked_belief/type_erasure.hpp"
 
 namespace py = pybind11;
 namespace rb = ranked_belief;
 
 namespace {
+
+struct PyObjectDeleter {
+    void operator()(PyObject* ptr) const noexcept
+    {
+        if (ptr != nullptr) {
+            py::gil_scoped_acquire gil;
+            Py_DECREF(ptr);
+        }
+    }
+};
+
+using PyObjectPtr = std::shared_ptr<PyObject>;
+
+[[nodiscard]] PyObjectPtr make_py_object_ptr(py::handle handle)
+{
+    PyObject* raw = handle.ptr();
+    if (raw == Py_None) {
+        return {};
+    }
+    py::gil_scoped_acquire gil;
+    Py_INCREF(raw);
+    return PyObjectPtr(raw, PyObjectDeleter{});
+}
+
+[[nodiscard]] std::any py_to_any(py::handle handle)
+{
+    if (handle.is_none()) {
+        return std::any{std::nullptr_t{}};
+    }
+    if (py::isinstance<py::bool_>(handle)) {
+        return std::any{handle.cast<bool>()};
+    }
+    if (py::isinstance<py::int_>(handle)) {
+        try {
+            return std::any{handle.cast<long long>()};
+        } catch (const py::cast_error&) {
+            return std::any{make_py_object_ptr(handle)};
+        }
+    }
+    if (py::isinstance<py::float_>(handle)) {
+        return std::any{handle.cast<double>()};
+    }
+    if (py::isinstance<py::str>(handle)) {
+        return std::any{handle.cast<std::string>()};
+    }
+    return std::any{make_py_object_ptr(handle)};
+}
+
+[[nodiscard]] py::object any_to_py(const std::any& value)
+{
+    if (value.type() == typeid(PyObjectPtr)) {
+        const auto& ptr = std::any_cast<const PyObjectPtr&>(value);
+        if (!ptr) {
+            return py::none();
+        }
+        py::gil_scoped_acquire gil;
+        Py_INCREF(ptr.get());
+        return py::reinterpret_steal<py::object>(ptr.get());
+    }
+    if (value.type() == typeid(std::nullptr_t)) {
+        return py::none();
+    }
+    if (value.type() == typeid(bool)) {
+        return py::bool_(std::any_cast<bool>(value));
+    }
+    if (value.type() == typeid(int)) {
+        return py::int_(std::any_cast<int>(value));
+    }
+    if (value.type() == typeid(long)) {
+        return py::int_(std::any_cast<long>(value));
+    }
+    if (value.type() == typeid(long long)) {
+        return py::int_(std::any_cast<long long>(value));
+    }
+    if (value.type() == typeid(unsigned long)) {
+        return py::int_(std::any_cast<unsigned long>(value));
+    }
+    if (value.type() == typeid(unsigned long long)) {
+        return py::int_(std::any_cast<unsigned long long>(value));
+    }
+    if (value.type() == typeid(double)) {
+        return py::float_(std::any_cast<double>(value));
+    }
+    if (value.type() == typeid(float)) {
+        return py::float_(std::any_cast<float>(value));
+    }
+    if (value.type() == typeid(std::string)) {
+        return py::str(std::any_cast<const std::string&>(value));
+    }
+    if (value.type() == typeid(const char*)) {
+        return py::str(std::any_cast<const char*>(value));
+    }
+    throw py::type_error("Unsupported value stored in RankingFunctionAny; expected a Python-managed object");
+}
+
+[[nodiscard]] std::vector<std::pair<std::any, rb::Rank>> parse_value_rank_pairs(const py::iterable& pairs)
+{
+    std::vector<std::pair<std::any, rb::Rank>> result;
+    for (auto item : pairs) {
+        auto tuple = py::reinterpret_borrow<py::sequence>(item);
+        if (py::len(tuple) != 2) {
+            throw py::value_error("Expected (value, Rank) pairs");
+        }
+        auto rank_obj = tuple[1];
+        result.emplace_back(py_to_any(tuple[0]), rank_obj.cast<rb::Rank>());
+    }
+    return result;
+}
+
+[[nodiscard]] py::list pairs_to_python_list(const std::vector<std::pair<std::any, rb::Rank>>& pairs)
+{
+    py::list result;
+    for (const auto& [value, rank] : pairs) {
+        result.append(py::make_tuple(any_to_py(value), rank));
+    }
+    return result;
+}
 
 template<typename T>
 void bind_ranking_function(py::module_& m, const char* class_name, const char* value_doc)
@@ -91,9 +212,14 @@ requested, preserving the underlying promise-based evaluation strategy.
 )pbdoc")
         .def("map",
             [](const RF& rf, py::function func, bool deduplicate) {
-                auto transformer = [func = std::move(func)](const T& value) -> T {
+                auto func_handle = make_py_object_ptr(func);
+                if (!func_handle) {
+                    throw py::value_error("map expects a callable");
+                }
+                auto transformer = [func_handle](const T& value) -> T {
                     py::gil_scoped_acquire gil;
-                    return func(value).template cast<T>();
+                    py::function callable = py::reinterpret_borrow<py::function>(func_handle.get());
+                    return callable(value).template cast<T>();
                 };
                 return rb::map<T>(rf, std::move(transformer), deduplicate);
             },
@@ -108,9 +234,14 @@ after the first evaluation.
 )pbdoc")
         .def("filter",
             [](const RF& rf, py::function predicate, bool deduplicate) {
-                auto pred = [predicate = std::move(predicate)](const T& value) {
+                auto predicate_handle = make_py_object_ptr(predicate);
+                if (!predicate_handle) {
+                    throw py::value_error("filter expects a callable predicate");
+                }
+                auto pred = [predicate_handle](const T& value) {
                     py::gil_scoped_acquire gil;
-                    return predicate(value).template cast<bool>();
+                    py::function callable = py::reinterpret_borrow<py::function>(predicate_handle.get());
+                    return callable(value).template cast<bool>();
                 };
                 return rb::filter<T>(rf, std::move(pred), deduplicate);
             },
@@ -163,9 +294,14 @@ Merge an iterable of rankings in rank order.
 )pbdoc")
         .def("merge_apply",
             [](const RF& rf, py::function func, bool deduplicate) {
-                auto binder = [func = std::move(func)](const T& value) -> RF {
+                auto func_handle = make_py_object_ptr(func);
+                if (!func_handle) {
+                    throw py::value_error("merge_apply expects a callable");
+                }
+                auto binder = [func_handle](const T& value) -> RF {
                     py::gil_scoped_acquire gil;
-                    return func(value).template cast<RF>();
+                    py::function callable = py::reinterpret_borrow<py::function>(func_handle.get());
+                    return callable(value).template cast<RF>();
                 };
                 return rb::merge_apply<T>(rf, std::move(binder), deduplicate);
             },
@@ -176,9 +312,14 @@ Apply a function returning rankings and merge all results lazily.
 )pbdoc")
         .def("observe",
             [](const RF& rf, py::function predicate, bool deduplicate) {
-                auto pred = [predicate = std::move(predicate)](const T& value) {
+                auto predicate_handle = make_py_object_ptr(predicate);
+                if (!predicate_handle) {
+                    throw py::value_error("observe expects a callable predicate");
+                }
+                auto pred = [predicate_handle](const T& value) {
                     py::gil_scoped_acquire gil;
-                    return predicate(value).template cast<bool>();
+                    py::function callable = py::reinterpret_borrow<py::function>(predicate_handle.get());
+                    return callable(value).template cast<bool>();
                 };
                 return rb::observe<T>(rf, std::move(pred), deduplicate);
             },
@@ -247,9 +388,14 @@ Construct a ranking assigning increasing ranks starting at ``start_rank``.
 )pbdoc")
         .def_static("from_generator",
             [](py::function generator, std::size_t start_index, bool deduplicate) {
-                auto gen = [generator = std::move(generator)](std::size_t index) {
+                auto generator_handle = make_py_object_ptr(generator);
+                if (!generator_handle) {
+                    throw py::value_error("from_generator expects a callable");
+                }
+                auto gen = [generator_handle](std::size_t index) {
                     py::gil_scoped_acquire gil;
-                    return generator(index).template cast<std::pair<T, rb::Rank>>();
+                    py::function callable = py::reinterpret_borrow<py::function>(generator_handle.get());
+                    return callable(index).template cast<std::pair<T, rb::Rank>>();
                 };
                 return rb::from_generator<T>(std::move(gen), start_index, deduplicate);
             },
@@ -340,6 +486,279 @@ include special handling for infinity to represent impossible outcomes.
         .def(py::self <= py::self)
         .def(py::self > py::self)
         .def(py::self >= py::self);
+
+    py::class_<rb::RankingFunctionAny>(m, "RankingFunctionAny", R"pbdoc(
+Type-erased lazy ranking over arbitrary Python values.
+
+The wrapper preserves the deferred-evaluation semantics of the native C++
+implementation while storing elements as Python objects. Operations never
+force values prematurely; computation occurs only when results are observed
+from Python.
+)pbdoc")
+        .def(py::init<>(), R"pbdoc(
+Create an empty ranking with no elements.
+)pbdoc")
+        .def_static("singleton",
+            [](py::object value, const rb::Rank& rank) {
+                auto native = rb::singleton<std::any>(py_to_any(value), rank);
+                return rb::RankingFunctionAny{std::move(native)};
+            },
+            py::arg("value"),
+            py::arg("rank") = rb::Rank::zero(),
+            R"pbdoc(Construct a ranking containing a single Python value.)pbdoc")
+        .def_static("from_list",
+            [](py::iterable pairs, bool deduplicate) {
+                auto native_pairs = parse_value_rank_pairs(pairs);
+                auto native = rb::from_list<std::any>(std::move(native_pairs), deduplicate);
+                return rb::RankingFunctionAny{std::move(native)};
+            },
+            py::arg("pairs"),
+            py::arg("deduplicate") = true,
+            R"pbdoc(Construct a ranking from explicit ``(value, Rank)`` pairs of Python objects.)pbdoc")
+        .def_static("from_generator",
+            [](py::function generator, std::size_t start_index, bool deduplicate) {
+                auto native = rb::from_generator<std::any>(
+                    [generator = std::move(generator)](std::size_t index) {
+                        py::gil_scoped_acquire gil;
+                        py::object result = generator(index);
+                        auto tuple = result.cast<py::sequence>();
+                        if (py::len(tuple) != 2) {
+                            throw py::value_error("Generator must yield (value, Rank) tuples");
+                        }
+                        auto rank_obj = tuple[1];
+                        return std::make_pair(py_to_any(tuple[0]), rank_obj.cast<rb::Rank>());
+                    },
+                    start_index,
+                    deduplicate);
+                return rb::RankingFunctionAny{std::move(native)};
+            },
+            py::arg("generator"),
+            py::arg("start_index") = 0,
+            py::arg("deduplicate") = true,
+            R"pbdoc(Construct a ranking lazily from a Python generator of ``(value, Rank)`` tuples.)pbdoc")
+        .def("is_empty", &rb::RankingFunctionAny::is_empty,
+            R"pbdoc(Return ``True`` when the ranking contains no elements.)pbdoc")
+        .def("first",
+            [](const rb::RankingFunctionAny& self)
+                -> std::optional<std::pair<py::object, rb::Rank>> {
+                auto rank = self.first_rank();
+                if (!rank) {
+                    return std::nullopt;
+                }
+                return std::make_optional(std::make_pair(any_to_py(self.first_value()), *rank));
+            },
+            R"pbdoc(Return the most normal element as ``(value, Rank)`` or ``None`` if empty.)pbdoc")
+        .def("map",
+            [](const rb::RankingFunctionAny& self, py::function func, bool deduplicate) {
+                auto func_handle = make_py_object_ptr(func);
+                if (!func_handle) {
+                    throw py::value_error("map expects a callable");
+                }
+                auto mapper = [func_handle](const std::any& value) -> std::any {
+                    if (!func_handle) {
+                        throw py::value_error("map callable is no longer available");
+                    }
+                    py::gil_scoped_acquire gil;
+                    py::function callable = py::reinterpret_borrow<py::function>(func_handle.get());
+                    py::object transformed = callable(any_to_py(value));
+                    return py_to_any(std::move(transformed));
+                };
+                try {
+                    return self.map(mapper, deduplicate);
+                } catch (const std::logic_error& error) {
+                    throw py::value_error(error.what());
+                }
+            },
+            py::arg("func"),
+            py::arg("deduplicate") = false,
+            R"pbdoc(Map a Python callable lazily across all values.)pbdoc")
+        .def("map_with_rank",
+            [](const rb::RankingFunctionAny& self, py::function func, bool deduplicate) {
+                auto func_handle = make_py_object_ptr(func);
+                if (!func_handle) {
+                    throw py::value_error("map_with_rank expects a callable");
+                }
+                auto mapper = [func_handle](const std::any& value, rb::Rank rank) {
+                    if (!func_handle) {
+                        throw py::value_error("map_with_rank callable is no longer available");
+                    }
+                    py::gil_scoped_acquire gil;
+                    py::function callable = py::reinterpret_borrow<py::function>(func_handle.get());
+                    py::object result = callable(any_to_py(value), rank);
+                    auto tuple = result.cast<py::sequence>();
+                    if (py::len(tuple) != 2) {
+                        throw py::value_error("map_with_rank callback must return (value, Rank)");
+                    }
+                    auto rank_obj = tuple[1];
+                    return std::make_pair(py_to_any(tuple[0]), rank_obj.cast<rb::Rank>());
+                };
+                try {
+                    return self.map_with_rank(mapper, deduplicate);
+                } catch (const std::logic_error& error) {
+                    throw py::value_error(error.what());
+                }
+            },
+            py::arg("func"),
+            py::arg("deduplicate") = false,
+            R"pbdoc(Map a callable that can adjust both value and rank lazily.)pbdoc")
+        .def("map_with_index",
+            [](const rb::RankingFunctionAny& self, py::function func, bool deduplicate) {
+                auto func_handle = make_py_object_ptr(func);
+                if (!func_handle) {
+                    throw py::value_error("map_with_index expects a callable");
+                }
+                auto mapper = [func_handle](const std::any& value, std::size_t index) -> std::any {
+                    if (!func_handle) {
+                        throw py::value_error("map_with_index callable is no longer available");
+                    }
+                    py::gil_scoped_acquire gil;
+                    py::function callable = py::reinterpret_borrow<py::function>(func_handle.get());
+                    py::object transformed = callable(any_to_py(value), index);
+                    return py_to_any(std::move(transformed));
+                };
+                try {
+                    return self.map_with_index(mapper, deduplicate);
+                } catch (const std::logic_error& error) {
+                    throw py::value_error(error.what());
+                }
+            },
+            py::arg("func"),
+            py::arg("deduplicate") = false,
+            R"pbdoc(Lazily map values while exposing their zero-based index.)pbdoc")
+        .def("filter",
+            [](const rb::RankingFunctionAny& self, py::function predicate, bool deduplicate) {
+                auto predicate_handle = make_py_object_ptr(predicate);
+                if (!predicate_handle) {
+                    throw py::value_error("filter expects a callable predicate");
+                }
+                auto pred = [predicate_handle](const std::any& value) {
+                    if (!predicate_handle) {
+                        throw py::value_error("filter predicate is no longer available");
+                    }
+                    py::gil_scoped_acquire gil;
+                    py::function callable = py::reinterpret_borrow<py::function>(predicate_handle.get());
+                    return callable(any_to_py(value)).template cast<bool>();
+                };
+                try {
+                    return self.filter(pred, deduplicate);
+                } catch (const std::logic_error& error) {
+                    throw py::value_error(error.what());
+                }
+            },
+            py::arg("predicate"),
+            py::arg("deduplicate") = true,
+            R"pbdoc(Filter the ranking with a Python predicate while preserving laziness.)pbdoc")
+        .def("take",
+            [](const rb::RankingFunctionAny& self, std::size_t count) {
+                return self.take(count);
+            },
+            py::arg("count"),
+            R"pbdoc(Create a new ranking containing at most ``count`` elements.)pbdoc")
+        .def("take_while_rank",
+            [](const rb::RankingFunctionAny& self, const rb::Rank& max_rank) {
+                return self.take_while_rank(max_rank);
+            },
+            py::arg("max_rank"),
+            R"pbdoc(Keep elements whose rank does not exceed ``max_rank``.)pbdoc")
+        .def("merge",
+            [](const rb::RankingFunctionAny& self, const rb::RankingFunctionAny& other, bool deduplicate) {
+                try {
+                    return self.merge(other, deduplicate);
+                } catch (const std::logic_error& error) {
+                    throw py::value_error(error.what());
+                }
+            },
+            py::arg("other"),
+            py::arg("deduplicate") = true,
+            R"pbdoc(Merge two rankings, interleaving elements by ascending rank.)pbdoc")
+        .def_static("merge_all",
+            [](py::iterable rankings, bool deduplicate) {
+                std::vector<rb::RankingFunctionAny> native;
+                for (auto item : rankings) {
+                    native.push_back(py::cast<rb::RankingFunctionAny>(item));
+                }
+                return rb::RankingFunctionAny::merge_all(native, deduplicate);
+            },
+            py::arg("rankings"),
+            py::arg("deduplicate") = true,
+            R"pbdoc(Merge an iterable of rankings into a single ranking.)pbdoc")
+        .def("merge_apply",
+            [](const rb::RankingFunctionAny& self, py::function func, bool deduplicate) {
+                auto func_handle = make_py_object_ptr(func);
+                if (!func_handle) {
+                    throw py::value_error("merge_apply expects a callable");
+                }
+                auto native = self.to_any_ranking(deduplicate);
+                auto merged = rb::merge_apply<std::any>(
+                    native,
+                    [func_handle](const std::any& value) {
+                        if (!func_handle) {
+                            throw py::value_error("merge_apply callable is no longer available");
+                        }
+                        py::gil_scoped_acquire gil;
+                        py::function callable = py::reinterpret_borrow<py::function>(func_handle.get());
+                        py::object returned = callable(any_to_py(value));
+                        try {
+                            auto rf_any = returned.cast<rb::RankingFunctionAny>();
+                            return rf_any.to_any_ranking(false);
+                        } catch (const py::cast_error&) {
+                            auto singleton = rb::singleton<std::any>(py_to_any(returned), rb::Rank::zero());
+                            return singleton;
+                        }
+                    },
+                    deduplicate);
+                return rb::RankingFunctionAny{std::move(merged)};
+            },
+            py::arg("func"),
+            py::arg("deduplicate") = false,
+            R"pbdoc(Apply a ranking-valued function to each element lazily and merge the results.)pbdoc")
+        .def("observe",
+            [](const rb::RankingFunctionAny& self, py::function predicate, bool deduplicate) {
+                auto predicate_handle = make_py_object_ptr(predicate);
+                if (!predicate_handle) {
+                    throw py::value_error("observe expects a callable predicate");
+                }
+                auto pred = [predicate_handle](const std::any& value) {
+                    if (!predicate_handle) {
+                        throw py::value_error("observe predicate is no longer available");
+                    }
+                    py::gil_scoped_acquire gil;
+                    py::function callable = py::reinterpret_borrow<py::function>(predicate_handle.get());
+                    return callable(any_to_py(value)).template cast<bool>();
+                };
+                try {
+                    return self.observe(pred, deduplicate);
+                } catch (const std::logic_error& error) {
+                    throw py::value_error(error.what());
+                }
+            },
+            py::arg("predicate"),
+            py::arg("deduplicate") = true,
+            R"pbdoc(Condition the ranking on a Python predicate and renormalise ranks.)pbdoc")
+        .def("observe_value",
+            [](const rb::RankingFunctionAny& self, py::object value, bool deduplicate) {
+                try {
+                    return self.observe_value(py_to_any(value), deduplicate);
+                } catch (const std::logic_error& error) {
+                    throw py::value_error(error.what());
+                }
+            },
+            py::arg("value"),
+            py::arg("deduplicate") = true,
+            R"pbdoc(Condition the ranking on equality with ``value``.)pbdoc")
+        .def("take_n",
+            [](const rb::RankingFunctionAny& self, std::size_t count) {
+                return pairs_to_python_list(self.take_n(count));
+            },
+            py::arg("count"),
+            R"pbdoc(Materialise at most ``count`` elements as ``(value, Rank)`` tuples.)pbdoc")
+        .def("materialize",
+            [](const rb::RankingFunctionAny& self, std::size_t count) {
+                return pairs_to_python_list(self.take_n(count));
+            },
+            py::arg("count"),
+            R"pbdoc(Alias for :py:meth:`take_n`.)pbdoc")
+        .def("__bool__", [](const rb::RankingFunctionAny& self) { return !self.is_empty(); });
 
     bind_ranking_function<int>(m, "RankingFunctionInt", "int");
     bind_ranking_function<double>(m, "RankingFunctionFloat", "float");

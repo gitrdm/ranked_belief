@@ -11,6 +11,7 @@ _EXPORTED_NAMES: Tuple[str, ...] = (
     "RankingFunctionInt",
     "RankingFunctionFloat",
     "RankingFunctionString",
+    "RankingFunctionAny",
 )
 
 if TYPE_CHECKING:  # pragma: no cover - assists static analysis
@@ -19,6 +20,7 @@ if TYPE_CHECKING:  # pragma: no cover - assists static analysis
         RankingFunctionFloat,
         RankingFunctionInt,
         RankingFunctionString,
+        RankingFunctionAny,
     )
 
 __all__ = [
@@ -27,6 +29,8 @@ __all__ = [
     "RankingFunctionInt",
     "RankingFunctionFloat",
     "RankingFunctionString",
+    "RankingFunctionAny",
+    "dsl",
 ]
 __version__ = "0.1.0"
 
@@ -66,6 +70,8 @@ except Exception as exc:  # pragma: no cover - surfacing linker/runtime errors l
 
 if _core is not None:
     globals().update({name: getattr(_core, name) for name in _EXPORTED_NAMES})
+
+from . import dsl as dsl  # noqa: E402  (re-export helper DSL)
 
 
 def __getattr__(name: str) -> Any:

@@ -303,10 +303,11 @@ private:
 					"RankingFunctionAny::map cannot deduplicate std::any results"};
 			}
 
+			auto captured = func;
 			auto mapped = ranked_belief::map(
 				rf,
-				[&func](const T& value) -> std::any {
-					return func(std::any{value});
+				[captured](const T& value) -> std::any {
+					return captured(std::any{value});
 				},
 				false);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
@@ -321,10 +322,11 @@ private:
 					"RankingFunctionAny::map_with_rank cannot deduplicate std::any results"};
 			}
 
+			auto captured = func;
 			auto mapped = ranked_belief::map_with_rank(
 				rf,
-				[&func](const T& value, Rank rank) {
-					return func(std::any{value}, rank);
+				[captured](const T& value, Rank rank) {
+					return captured(std::any{value}, rank);
 				},
 				false);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
@@ -339,10 +341,11 @@ private:
 					"RankingFunctionAny::map_with_index cannot deduplicate std::any results"};
 			}
 
+			auto captured = func;
 			auto mapped = ranked_belief::map_with_index(
 				rf,
-				[&func](const T& value, std::size_t index) -> std::any {
-					return func(std::any{value}, index);
+				[captured](const T& value, std::size_t index) -> std::any {
+					return captured(std::any{value}, index);
 				},
 				false);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
@@ -352,9 +355,10 @@ private:
 			const std::function<bool(const std::any&)>& predicate,
 			bool deduplicate) const override
 		{
+			auto captured = predicate;
 			auto filtered = ranked_belief::filter(
 				rf,
-				[&predicate](const T& value) { return predicate(std::any{value}); },
+				[captured](const T& value) { return captured(std::any{value}); },
 				deduplicate);
 			return std::make_unique<Model<T>>(std::move(filtered));
 		}
@@ -426,9 +430,10 @@ private:
 			const std::function<bool(const std::any&)>& predicate,
 			bool deduplicate) const override
 		{
+			auto captured = predicate;
 			auto observed = ranked_belief::observe(
 				rf,
-				[&predicate](const T& value) { return predicate(std::any{value}); },
+				[captured](const T& value) { return captured(std::any{value}); },
 				deduplicate);
 			return std::make_unique<Model<T>>(std::move(observed));
 		}
@@ -510,9 +515,10 @@ private:
 				throw std::logic_error{
 					"RankingFunctionAny::map cannot deduplicate std::any results"};
 			}
+			auto captured = func;
 			auto mapped = ranked_belief::map(
 				rf,
-				[&func](const std::any& value) { return func(value); },
+				[captured](const std::any& value) { return captured(value); },
 				false);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
 		}
@@ -525,10 +531,11 @@ private:
 				throw std::logic_error{
 					"RankingFunctionAny::map_with_rank cannot deduplicate std::any results"};
 			}
+			auto captured = func;
 			auto mapped = ranked_belief::map_with_rank(
 				rf,
-				[&func](const std::any& value, Rank rank) {
-					return func(value, rank);
+				[captured](const std::any& value, Rank rank) {
+					return captured(value, rank);
 				},
 				false);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
@@ -542,10 +549,11 @@ private:
 				throw std::logic_error{
 					"RankingFunctionAny::map_with_index cannot deduplicate std::any results"};
 			}
+			auto captured = func;
 			auto mapped = ranked_belief::map_with_index(
 				rf,
-				[&func](const std::any& value, std::size_t index) {
-					return func(value, index);
+				[captured](const std::any& value, std::size_t index) {
+					return captured(value, index);
 				},
 				false);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
@@ -559,9 +567,10 @@ private:
 				throw std::logic_error{
 					"RankingFunctionAny::filter cannot deduplicate std::any results"};
 			}
+			auto captured = predicate;
 			auto filtered = ranked_belief::filter(
 				rf,
-				[&predicate](const std::any& value) { return predicate(value); },
+				[captured](const std::any& value) { return captured(value); },
 				false);
 			return std::make_unique<Model<std::any>>(std::move(filtered));
 		}
@@ -609,9 +618,10 @@ private:
 				throw std::logic_error{
 					"RankingFunctionAny::observe cannot deduplicate std::any results"};
 			}
+			auto captured = predicate;
 			auto observed = ranked_belief::observe(
 				rf,
-				[&predicate](const std::any& value) { return predicate(value); },
+				[captured](const std::any& value) { return captured(value); },
 				false);
 			return std::make_unique<Model<std::any>>(std::move(observed));
 		}
