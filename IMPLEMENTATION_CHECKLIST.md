@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 3.6 Complete)
+## Progress Summary (Last Updated: Phase 3.7 Complete)
 
-**Status**: Phase 3 In Progress – Observe implemented, Normal/Exceptional operations up next
-**Test Count**: 406 tests passing
+**Status**: Phase 4 Pending – Normal/Exceptional queries implemented, Autocast up next
+**Test Count**: 413 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -13,8 +13,9 @@
 - Phase 3.4: Merge Operations (2 functions) ✅
 - Phase 3.5: Merge-Apply Operation ✅
 - Phase 3.6: Observe Operation ✅
+ - Phase 3.7: Normal/Exceptional Operations ✅
 
-**Next Phase**: 3.7 Normal/Exceptional Operations
+**Next Phase**: 4.1 Autocast Mechanism
 
 ---
 
@@ -487,14 +488,17 @@ std::vector<std::pair<T, Rank>> take_n(const RankingFunction<T>& rf, size_t n);
 ```
 
 **Checklist**:
-- [ ] Implement most_normal (first element)
-- [ ] Implement take_n for extracting prefix
-- [ ] Create `tests/operations/nrm_exc_test.cpp`:
+- [x] Implement most_normal (first element)
+- [x] Implement take_n for extracting prefix while respecting laziness
+- [x] Create `tests/operations/nrm_exc_test.cpp`:
   - Extract most normal value
   - Take first n elements
   - Empty ranking behavior
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement normal/exceptional query operations"
+  - Rank preservation and laziness of take_n
+- [x] All tests passing (413/413)
+- [x] **COMMIT**: "Implement normal/exceptional query operations"
+
+**Status**: ✅ Implementation complete — `most_normal` forwards to the lazy head accessor, while `take_n` materialises only the requested prefix and leaves the tail untouched. Seven targeted GoogleTests verify empty cases, partial pulls, rank preservation, and generator laziness.
 
 ---
 
