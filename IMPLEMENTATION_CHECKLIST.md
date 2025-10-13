@@ -1,9 +1,9 @@
 # ranked_belief Implementation Checklist
 
-## Progress Summary (Last Updated: Phase 3.7 Complete)
+## Progress Summary (Last Updated: Phase 4.1 Complete)
 
-**Status**: Phase 4 Pending – Normal/Exceptional queries implemented, Autocast up next
-**Test Count**: 413 tests passing
+**Status**: Phase 4 In Progress – Autocast delivered, Operator overloads up next
+**Test Count**: 418 tests passing
 **Coverage**: 
 - Phase 1: Foundation (Rank, Promise) ✅
 - Phase 2: Data Structures (RankingElement, Iterator, Function) ✅  
@@ -13,9 +13,10 @@
 - Phase 3.4: Merge Operations (2 functions) ✅
 - Phase 3.5: Merge-Apply Operation ✅
 - Phase 3.6: Observe Operation ✅
- - Phase 3.7: Normal/Exceptional Operations ✅
+- Phase 3.7: Normal/Exceptional Operations ✅
+- Phase 4.1: Autocast Mechanism ✅
 
-**Next Phase**: 4.1 Autocast Mechanism
+**Next Phase**: 4.2 Operator Overloads
 
 ---
 
@@ -520,16 +521,19 @@ T&& autocast(T&& rf);
 ```
 
 **Checklist**:
-- [ ] Define IsRankingFunction concept
-- [ ] Implement autocast for regular values (convert to singleton)
-- [ ] Implement autocast for RankingFunction (pass-through)
-- [ ] Create `tests/autocast_test.cpp`:
+- [x] Define IsRankingFunction concept
+- [x] Implement autocast for regular values (convert to singleton)
+- [x] Implement autocast for RankingFunction (pass-through)
+- [x] Create `tests/autocast_test.cpp`:
   - Autocast scalars
   - Autocast vectors
   - Autocast ranking functions
   - Type deduction verification
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement autocast mechanism with concepts"
+  - Laziness preservation checks
+- [x] All tests passing (418/418)
+- [x] **COMMIT**: "Implement autocast mechanism with concepts"
+
+**Status**: ✅ Complete — Introduced the `IsRankingFunction` concept with detection traits and delivered dual `autocast` overloads. Plain values lift into singleton rankings while existing rankings are forwarded without forcing additional computation. Five targeted GoogleTests cover value lifting, reference preservation, and laziness.
 
 ### 4.2 Operator Overloads
 **File**: `include/ranked_belief/operators.hpp`

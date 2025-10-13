@@ -14,6 +14,7 @@ add_executable(ranked_belief_tests
     operations/merge_apply_test.cpp
     operations/observe_test.cpp
     operations/nrm_exc_test.cpp
+    autocast_test.cpp
 )
 
 target_link_libraries(ranked_belief_tests
