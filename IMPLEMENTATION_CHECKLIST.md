@@ -339,25 +339,38 @@ auto map_with_index(const RankingFunction<T>& rf, F func, bool deduplicate = tru
 - [x] All tests passing (300/300 tests: 271 existing + 29 new)
 - [x] **COMMIT**: "Phase 3.2: Implement lazy map operations with Promise-based values"
 
-### 3.3 Filter Operation
+### 3.3 Filter Operation ✓
 **File**: `include/ranked_belief/operations/filter.hpp`
 
 **Key Function Signatures**:
 ```cpp
 template<typename T, typename Pred>
 RankingFunction<T> filter(const RankingFunction<T>& rf, Pred predicate);
+template<typename T>
+RankingFunction<T> take(const RankingFunction<T>& rf, std::size_t n);
+template<typename T>
+RankingFunction<T> take_while_rank(const RankingFunction<T>& rf, Rank max_rank);
 ```
 
 **Checklist**:
-- [ ] Implement lazy filter preserving ranks
-- [ ] Skip elements not satisfying predicate
-- [ ] Maintain lazy evaluation
-- [ ] Create `tests/operations/filter_test.cpp`:
-  - Filter finite sequences
-  - Filter infinite sequences (verify laziness)
-  - Empty result cases
-- [ ] All tests passing
-- [ ] **COMMIT**: "Implement lazy filter operation"
+- [x] Implement lazy filter preserving ranks
+- [x] Skip elements not satisfying predicate
+- [x] Maintain lazy evaluation
+- [x] Implement take() (Racket's filter-after)
+- [x] Implement take_while_rank() (Racket's up-to-rank)
+- [x] Create `tests/operations/filter_test.cpp`:
+  - Basic filtering (empty, single, multiple elements)
+  - Rank preservation (sequential, uniform, non-sequential)
+  - Lazy evaluation with infinite sequences
+  - Complex predicates and type transformations
+  - Deduplication behavior (with/without)
+  - Operation chaining (filter+map+take, etc.)
+  - Exception handling in predicates
+  - Large sequence performance (10K elements)
+  - take() tests (basic, rank preservation, lazy, chaining)
+  - take_while_rank() tests (basic, non-sequential ranks, lazy)
+- [x] All tests passing (343/343 tests: 300 existing + 43 new)
+- [x] **COMMIT**: "Phase 3.3: Implement lazy filter operations"
 
 ### 3.4 Merge Operation
 **File**: `include/ranked_belief/operations/merge.hpp`
