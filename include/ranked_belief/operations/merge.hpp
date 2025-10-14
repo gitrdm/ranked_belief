@@ -63,110 +63,149 @@ template<typename T>
     const RankingFunction<T>& rf2,
     bool deduplicate = true)
 {
-    // Helper function to recursively merge sequences
-    // Uses shared_ptr to allow safe capture in lazy computations
-    using BuildFunc = std::function<std::shared_ptr<RankingElement<T>>(
-        std::shared_ptr<RankingElement<T>>,
-        std::shared_ptr<RankingElement<T>>,
-        Rank)>;
-    auto build_merged = std::make_shared<BuildFunc>();
-    std::weak_ptr<BuildFunc> weak_build = build_merged;
+    // Special case: if both ranking functions have the same head, return one of them
+    // This handles merging a sequence with itself, which should produce the same sequence
+    if (rf1.head() == rf2.head()) {
+        if (!deduplicate) {
+            // If deduplication is off, make a lazy deep copy of rf2 and merge rf1 with the copy directly
+            auto rf2_copy_head = lazy_deepcopy_ranking_sequence<T>(rf2.head());
+            // Do NOT call merge recursively with rf1 and rf2_copy, as that can reintroduce shared structure
+            // Instead, merge rf1 and rf2_copy using a local merge implementation that never compares pointer-equal nodes
+            auto build_merged_impl = [](
+                auto&& self,
+                std::shared_ptr<RankingElement<T>> elem1,
+                std::shared_ptr<RankingElement<T>> elem2,
+                Rank seen_rank) -> std::shared_ptr<RankingElement<T>>
+            {
+                if (!elem1) return elem2;
+                if (!elem2) return elem1;
+                // Do NOT check for pointer equality here: after deep copy, all nodes are unique
+                if (elem1->rank() == seen_rank) {
+                    auto elem1_rank = elem1->rank();
+                    // Create a promise wrapper to avoid moving from elem1
+                    auto value_wrapper = make_promise([elem1]() { return elem1->value(); });
+                    auto compute_next = [self, elem1, elem2, seen_rank]() {
+                        auto next_elem1 = elem1->next();
+                        return self(self, next_elem1, elem2, seen_rank);
+                    };
+                    return make_lazy_node(
+                        std::move(value_wrapper),
+                        elem1_rank,
+                        make_promise(std::move(compute_next))
+                    );
+                }
+                if (elem1->rank() <= elem2->rank()) {
+                    auto elem1_rank = elem1->rank();
+                    // Create a promise wrapper to avoid moving from elem1
+                    auto value_wrapper = make_promise([elem1]() { return elem1->value(); });
+                    auto compute_next = [self, elem1, elem2, elem1_rank]() {
+                        auto next_elem1 = elem1->next();
+                        return self(self, next_elem1, elem2, elem1_rank);
+                    };
+                    return make_lazy_node(
+                        std::move(value_wrapper),
+                        elem1_rank,
+                        make_promise(std::move(compute_next))
+                    );
+                } else {
+                    auto elem2_rank = elem2->rank();
+                    // Create a promise wrapper to avoid moving from elem2
+                    auto value_wrapper = make_promise([elem2]() { return elem2->value(); });
+                    auto compute_next = [self, elem1, elem2, elem2_rank]() {
+                        auto next_elem2 = elem2->next();
+                        return self(self, elem1, next_elem2, elem2_rank);
+                    };
+                    return make_lazy_node(
+                        std::move(value_wrapper),
+                        elem2_rank,
+                        make_promise(std::move(compute_next))
+                    );
+                }
+            };
+            auto merged_head = build_merged_impl(build_merged_impl, rf1.head(), rf2_copy_head, Rank::zero());
+            return RankingFunction<T>(merged_head, false);
+        }
+        return rf1;
+    }
     
-    *build_merged = [weak_build](
+    // Helper function to recursively merge sequences
+    auto build_merged_impl = [](
+        auto&& self,
         std::shared_ptr<RankingElement<T>> elem1,
         std::shared_ptr<RankingElement<T>> elem2,
         Rank seen_rank)
         -> std::shared_ptr<RankingElement<T>>
     {
+        // If both pointers are the same, just return one (avoid double-move)
+        if (elem1 == elem2) {
+            return elem1;
+        }
         // If first sequence is exhausted, return second
         if (!elem1) {
             return elem2;
         }
-
-        auto build_ref = weak_build.lock();
-        
-        // If first element's rank equals seen_rank, take it immediately and continue with same seen_rank
-        // This handles continuing to consume elements from elem1 at the same rank
-        if (elem1->rank() == seen_rank) {
-            auto compute_next = [weak_build, build_ref, elem1, elem2, seen_rank]()
-                -> std::shared_ptr<RankingElement<T>>
-            {
-                auto next_elem1 = elem1->next();
-
-                if (auto locked = weak_build.lock()) {
-                    return (*locked)(next_elem1, elem2, seen_rank);
-                }
-
-                if (build_ref) {
-                    return (*build_ref)(next_elem1, elem2, seen_rank);
-                }
-                return nullptr;
-            };
-            
-            return make_lazy_node(
-                std::move(*elem1).extract_value_promise(),
-                elem1->rank(),
-                make_promise(std::move(compute_next))
-            );
-        }
-        
         // If second sequence is exhausted, return first
         if (!elem2) {
             return elem1;
         }
-        
+        // If first element's rank equals seen_rank, take it immediately and continue with same seen_rank
+        if (elem1->rank() == seen_rank) {
+            auto elem1_rank = elem1->rank();
+            // Create a promise wrapper to avoid moving from elem1
+            auto value_wrapper = make_promise([elem1]() { return elem1->value(); });
+            auto compute_next = [self](std::shared_ptr<RankingElement<T>> n1, std::shared_ptr<RankingElement<T>> n2, Rank r) -> std::shared_ptr<RankingElement<T>> {
+                if (n1 == n2) return n1;
+                return self(self, n1, n2, r);
+            };
+            return make_lazy_node(
+                std::move(value_wrapper),
+                elem1_rank,
+                make_promise([self, elem1, elem2, seen_rank, compute_next]() {
+                    auto next_elem1 = elem1->next();
+                    if (next_elem1 == elem2) return next_elem1;
+                    return compute_next(next_elem1, elem2, seen_rank);
+                })
+            );
+        }
         // Compare ranks to decide which element comes next
         if (elem1->rank() <= elem2->rank()) {
-            // Take element from first sequence and update seen_rank to its rank
             auto elem1_rank = elem1->rank();
-            auto compute_next = [weak_build, build_ref, elem1, elem2, elem1_rank]()
-                -> std::shared_ptr<RankingElement<T>>
-            {
-                auto next_elem1 = elem1->next();
-
-                if (auto locked = weak_build.lock()) {
-                    return (*locked)(next_elem1, elem2, elem1_rank);
-                }
-
-                if (build_ref) {
-                    return (*build_ref)(next_elem1, elem2, elem1_rank);
-                }
-                return nullptr;
+            // Create a promise wrapper to avoid moving from elem1
+            auto value_wrapper = make_promise([elem1]() { return elem1->value(); });
+            auto compute_next = [self](std::shared_ptr<RankingElement<T>> n1, std::shared_ptr<RankingElement<T>> n2, Rank r) -> std::shared_ptr<RankingElement<T>> {
+                if (n1 == n2) return n1;
+                return self(self, n1, n2, r);
             };
-            
             return make_lazy_node(
-                std::move(elem1->value_promise()),
+                std::move(value_wrapper),
                 elem1_rank,
-                make_promise(std::move(compute_next))
+                make_promise([self, elem1, elem2, elem1_rank, compute_next]() {
+                    auto next_elem1 = elem1->next();
+                    if (next_elem1 == elem2) return next_elem1;
+                    return compute_next(next_elem1, elem2, elem1_rank);
+                })
             );
         } else {
-            // Take element from second sequence and update seen_rank to its rank
             auto elem2_rank = elem2->rank();
-            auto compute_next = [weak_build, build_ref, elem1, elem2, elem2_rank]()
-                -> std::shared_ptr<RankingElement<T>>
-            {
-                auto next_elem2 = elem2->next();
-
-                if (auto locked = weak_build.lock()) {
-                    return (*locked)(elem1, next_elem2, elem2_rank);
-                }
-
-                if (build_ref) {
-                    return (*build_ref)(elem1, next_elem2, elem2_rank);
-                }
-                return nullptr;
+            // Create a promise wrapper to avoid moving from elem2
+            auto value_wrapper = make_promise([elem2]() { return elem2->value(); });
+            auto compute_next = [self](std::shared_ptr<RankingElement<T>> n1, std::shared_ptr<RankingElement<T>> n2, Rank r) -> std::shared_ptr<RankingElement<T>> {
+                if (n1 == n2) return n1;
+                return self(self, n1, n2, r);
             };
-            
             return make_lazy_node(
-                std::move(elem2->value_promise()),
+                std::move(value_wrapper),
                 elem2_rank,
-                make_promise(std::move(compute_next))
+                make_promise([self, elem1, elem2, elem2_rank, compute_next]() {
+                    auto next_elem2 = elem2->next();
+                    if (elem1 == next_elem2) return elem1;
+                    return compute_next(elem1, next_elem2, elem2_rank);
+                })
             );
         }
     };
-    
     // Start merge with both heads and rank 0
-    auto merged_head = (*build_merged)(rf1.head(), rf2.head(), Rank::zero());
+    auto merged_head = build_merged_impl(build_merged_impl, rf1.head(), rf2.head(), Rank::zero());
     
     return RankingFunction<T>(merged_head, deduplicate);
 }

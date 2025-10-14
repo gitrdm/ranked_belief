@@ -16,6 +16,7 @@
 #include "promise.hpp"
 #include "rank.hpp"
 
+#include <iostream>
 #include <memory>
 #include <utility>
 
@@ -190,7 +191,9 @@ public:
      *
      * @return Const reference to the value promise.
      */
-    [[nodiscard]] Promise<T>& value_promise() noexcept { return value_; }
+    [[nodiscard]] Promise<T>& value_promise() noexcept {
+        return value_;
+    }
 
     /**
      * @brief Extract the value promise by moving it out.
@@ -201,7 +204,9 @@ public:
      *
      * @return The moved value promise.
      */
-    [[nodiscard]] Promise<T> extract_value_promise() && { return std::move(value_); }
+    [[nodiscard]] Promise<T> extract_value_promise() && {
+        return std::move(value_);
+    }
 
 private:
     mutable Promise<T> value_;  ///< Lazy value (mutable for lazy evaluation, memoized on first access)
@@ -347,6 +352,47 @@ template<typename T>
         std::move(value_promise),
         std::move(rank),
         std::move(next));
+}
+
+/**
+ * @brief Lazily deep-copies a ranking sequence.
+ *
+ * Returns a new sequence with the same values, ranks, and structure as the input,
+ * but with all nodes and promises independent. No values or next pointers are forced
+ * until the copy is traversed. Thread-safe and preserves laziness.
+ *
+ * @tparam T The value type.
+ * @param orig The head of the sequence to copy.
+ * @return A new, independent copy of the sequence (or nullptr if orig is nullptr).
+ */
+template<typename T>
+std::shared_ptr<RankingElement<T>> lazy_deepcopy_ranking_sequence(const std::shared_ptr<RankingElement<T>>& orig) {
+    if (!orig) return nullptr;
+    // Copy value lazily: new promise that forces the original's value promise
+    auto value_promise = make_promise([orig]() { return orig->value(); });
+    // Copy next lazily: new promise that recursively deep-copies the next pointer
+    auto next_promise = make_promise([orig]() {
+        auto orig_next = orig->next();
+        return lazy_deepcopy_ranking_sequence<T>(orig_next);
+    });
+    return std::make_shared<RankingElement<T>>(std::move(value_promise), orig->rank(), std::move(next_promise));
+}
+
+/**
+ * Debug: Print the structure of a ranking sequence (for troubleshooting deep copy).
+ */
+template<typename T>
+void debug_print_ranking_sequence(const std::shared_ptr<RankingElement<T>>& elem, const std::string& prefix = "", int max_depth = 10) {
+    auto current = elem;
+    int depth = 0;
+    while (current && depth < max_depth) {
+        std::cout << prefix << "Node @ " << current.get() << ", value forced? " << current->value_promise().is_forced() << ", rank: " << current->rank().value() << ", next: " << current->next().get() << std::endl;
+        current = current->next();
+        ++depth;
+    }
+    if (current) {
+        std::cout << prefix << "... (truncated) ..." << std::endl;
+    }
 }
 
 }  // namespace ranked_belief

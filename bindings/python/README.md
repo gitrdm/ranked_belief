@@ -1,7 +1,8 @@
 # Ranked Belief Python Bindings
 
 The Python package mirrors the full lazy semantics of the C++ ranked belief
-library and now ships with a set of high-level helpers and example programs
+library. It is a PoC wrapper to exercise the C++ api in a ffi environment.
+It ships with a set of high-level helpers and example programs
 ported from the original Racket distribution.  This document summarises how to
 build, use, and extend the bindings.
 

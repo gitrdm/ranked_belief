@@ -25,6 +25,7 @@
 #define RANKED_BELIEF_CONSTRUCTORS_HPP
 
 #include "ranking_function.hpp"
+#include "concepts.hpp"
 #include <concepts>
 #include <ranges>
 #include <type_traits>
@@ -55,7 +56,7 @@ namespace ranked_belief {
  * });
  * @endcode
  */
-template<typename T>
+template<ValueType T>
 [[nodiscard]] RankingFunction<T> from_list(
     const std::vector<std::pair<T, Rank>>& pairs,
     bool deduplicate = true)
@@ -91,7 +92,7 @@ template<typename T>
  * auto rf = from_values_uniform({1, 2, 3, 4, 5});  // All at rank 0
  * @endcode
  */
-template<typename T>
+template<ValueType T>
 [[nodiscard]] RankingFunction<T> from_values_uniform(
     const std::vector<T>& values,
     Rank rank = Rank::zero(),
@@ -129,7 +130,7 @@ template<typename T>
  * // Creates: 1@0, 2@1, 3@2
  * @endcode
  */
-template<typename T>
+template<ValueType T>
 [[nodiscard]] RankingFunction<T> from_values_sequential(
     const std::vector<T>& values,
     Rank start_rank = Rank::zero(),
@@ -326,7 +327,7 @@ requires requires(R r) {
  * @param rank The rank (default: Rank::zero())
  * @return RankingFunction with single element
  */
-template<typename T>
+template<ValueType T>
 [[nodiscard]] RankingFunction<T> singleton(T value, Rank rank = Rank::zero()) {
     return make_singleton_ranking(std::move(value), rank);
 }
@@ -339,7 +340,7 @@ template<typename T>
  * @tparam T The value type
  * @return Empty RankingFunction
  */
-template<typename T>
+template<ValueType T>
 [[nodiscard]] RankingFunction<T> empty() {
     return make_empty_ranking<T>();
 }

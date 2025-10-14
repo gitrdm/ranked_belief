@@ -16,7 +16,6 @@ A modern C++20 port of the ranked programming calculus that models epistemic unc
 
 - C++20 toolchain (GCC 10+, Clang 13+, or MSVC 19.29+)
 - CMake 3.20 or newer
-- Conan 2.x (optional: for dependency management, currently unused)
 - Doxygen 1.9 or newer (for API documentation generation)
 
 ### Configure & Build
