@@ -13,7 +13,7 @@ __all__ = ["circuit", "diagnose", "format_scenarios"]
 def _gate_behaviour() -> RankingFunctionAny:
     """Ranking describing a gate that normally passes and exceptionally fails."""
 
-    return normal_exceptional(True, False, deduplicate=False)
+    return normal_exceptional(True, False)
 
 
 def circuit(input1: bool, input2: bool, input3: bool) -> RankingFunctionAny:
@@ -35,11 +35,11 @@ def circuit(input1: bool, input2: bool, input3: bool) -> RankingFunctionAny:
                 }
                 return RankingFunctionAny.singleton(scenario)
 
-            return merge_apply(_gate_behaviour(), bind_o2_gate, deduplicate=False)
+            return merge_apply(_gate_behaviour(), bind_o2_gate)
 
-        return merge_apply(_gate_behaviour(), bind_o1_gate, deduplicate=False)
+        return merge_apply(_gate_behaviour(), bind_o1_gate)
 
-    return merge_apply(_gate_behaviour(), bind_n_gate, deduplicate=False)
+    return merge_apply(_gate_behaviour(), bind_n_gate)
 
 
 def diagnose(
@@ -55,7 +55,6 @@ def diagnose(
     posterior = observe(
         circuit(input1, input2, input3),
         lambda scenario: scenario["output"] == observed_output,
-        deduplicate=False,
     )
     return [(scenario, rank) for scenario, rank in posterior.take_n(limit)]
 

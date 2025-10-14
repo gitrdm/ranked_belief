@@ -50,15 +50,13 @@ def _advance(path: Path, observation: Observation) -> RankingFunctionAny:
         consistent_emissions = observe(
             emit(next_state),
             lambda value: value == observation,
-            deduplicate=False,
         )
         return merge_apply(
             consistent_emissions,
             lambda _matched: _prepend_step(path, next_state, observation),
-            deduplicate=False,
         )
 
-    return merge_apply(trans(last_state), bind_state, deduplicate=False)
+    return merge_apply(trans(last_state), bind_state)
 
 
 def hmm(observations: Sequence[Observation]) -> RankingFunctionAny:
@@ -68,10 +66,10 @@ def hmm(observations: Sequence[Observation]) -> RankingFunctionAny:
         start: Path = ((state, None),)
         return RankingFunctionAny.singleton(start)
 
-    ranking = merge_apply(init(), initialise, deduplicate=False)
+    ranking = merge_apply(init(), initialise)
     for obs in observations:
-        ranking = merge_apply(ranking, lambda path, obs=obs: _advance(path, obs), deduplicate=False)
-    return ranking.map(lambda path: tuple(path[1:]), deduplicate=False)
+        ranking = merge_apply(ranking, lambda path, obs=obs: _advance(path, obs))
+    return ranking.map(lambda path: tuple(path[1:]))
 
 
 def sequence_likelihoods(observations: Iterable[Observation], *, limit: int = 5) -> List[Tuple[Path, Rank]]:

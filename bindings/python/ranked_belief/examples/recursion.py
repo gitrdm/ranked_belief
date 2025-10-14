@@ -16,7 +16,7 @@ def recursive_fun(value: int) -> RankingFunctionAny:
     def exceptional_branch() -> RankingFunctionAny:
         return recursive_fun(value * 2)
 
-    return normal_exceptional(value, exceptional_branch, deduplicate=False)
+    return normal_exceptional(value, exceptional_branch)
 
 
 def first_values(count: int = 10) -> List[Tuple[int, Rank]]:
@@ -30,5 +30,5 @@ def values_greater_than(threshold: int, *, limit: int = 5) -> List[Tuple[int, Ra
     """Observe ``recursive_fun(1)`` with a predicate and return the top results."""
 
     ranking = recursive_fun(1)
-    posterior = observe(ranking, lambda value: value > threshold, deduplicate=False)
+    posterior = observe(ranking, lambda value: value > threshold)
     return take_n(posterior, limit)

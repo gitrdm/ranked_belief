@@ -34,5 +34,5 @@ def uncertain_operator_sum() -> List[Tuple[int, Rank]]:
     operator_ranking = normal_exceptional(operator.add, operator.sub)
     argument_ranking = normal_exceptional(10, 20)
     ranking = ranked_apply(operator_ranking, argument_ranking, 5)
-    filtered = observe(ranking, lambda value: value in {15, -5}, deduplicate=False)
+    filtered = observe(ranking, lambda value: value in {15, -5})
     return take_n(filtered, 6)

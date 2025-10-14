@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
@@ -11,7 +12,40 @@ from ..dsl import merge_apply, normal_exceptional, observe, take_n
 
 __all__ = ["correct", "suggest"]
 
-_DICTIONARY_PATH = Path(__file__).resolve().parents[3] / "ranked-programming" / "examples" / "google-10000-english-no-swears.txt"
+_DICTIONARY_FILENAME = "google-10000-english-no-swears.txt"
+
+
+def _resolve_dictionary_path() -> Path:
+    """Locate the dictionary file from either source or build trees.
+
+    Searches the directory hierarchy above this module for a ``ranked-programming``
+    checkout containing the example dictionary. Falls back to an environment override
+    for testing or custom paths.
+    """
+
+    override = os.environ.get("RANKED_BELIEF_DICTIONARY")
+    if override:
+        candidate = Path(override).expanduser().resolve()
+        if candidate.is_file():
+            return candidate
+        raise FileNotFoundError(
+            f"Environment variable RANKED_BELIEF_DICTIONARY={candidate} does not point to a file"
+        )
+
+    relative = Path("ranked-programming") / "examples" / _DICTIONARY_FILENAME
+    for base in Path(__file__).resolve().parents:
+        candidate = base / relative
+        if candidate.is_file():
+            return candidate
+
+    raise FileNotFoundError(
+        "Unable to locate dictionary file 'google-10000-english-no-swears.txt'. "
+        "Provide it by setting RANKED_BELIEF_DICTIONARY or placing the ranked-programming"
+        " checkout alongside this package."
+    )
+
+
+_DICTIONARY_PATH = _resolve_dictionary_path()
 
 Trie = Dict[str, Tuple["Trie", List[str]]]
 
@@ -61,9 +95,9 @@ def _gen(pattern: List[str]) -> RankingFunctionAny:
     head, *tail = pattern
     tail_rf = _gen(tail)
 
-    keep_head = tail_rf.map(lambda rest: (head,) + rest, deduplicate=False)
-    wildcard = tail_rf.map(lambda rest: ("*",) + rest, deduplicate=False)
-    return keep_head.merge(wildcard, deduplicate=False)
+    keep_head = tail_rf.map(lambda rest: (head,) + rest)
+    wildcard = tail_rf.map(lambda rest: ("*",) + rest)
+    return keep_head.merge(wildcard)
 
 
 def correct(word: str) -> RankingFunctionAny:
@@ -72,7 +106,7 @@ def correct(word: str) -> RankingFunctionAny:
     def predicate(candidate: Tuple[str, ...]) -> bool:
         return bool(_lookup(_build_trie(), list(candidate)))
 
-    return observe(_gen(pattern), predicate, deduplicate=False)
+    return observe(_gen(pattern), predicate)
 
 
 def suggest(word: str, limit: int = 5) -> List[Tuple[str, Rank]]:

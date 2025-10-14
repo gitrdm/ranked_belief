@@ -51,6 +51,6 @@ def network() -> RankingFunctionAny:
 def sensor_given_fire(limit: int = 8) -> List[Tuple[bool, Rank]]:
     """Return the ranking over sensor outcomes conditioned on fire being true."""
 
-    posterior = observe(network(), lambda env: env["F"], deduplicate=False)
-    sensor_only = posterior.map(lambda env: env["S"], deduplicate=True)
+    posterior = observe(network(), lambda env: env["F"])
+    sensor_only = posterior.map(lambda env: env["S"])
     return take_n(sensor_only, limit)

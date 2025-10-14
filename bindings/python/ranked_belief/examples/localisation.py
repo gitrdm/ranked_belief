@@ -56,15 +56,13 @@ def _advance(path: Path, observation: Coordinate) -> RankingFunctionAny:
         consistent = observe(
             observable(next_state),
             lambda seen: seen == observation,
-            deduplicate=False,
         )
         return merge_apply(
             consistent,
             lambda _matched: _prepend(path, next_state, observation),
-            deduplicate=False,
         )
 
-    return merge_apply(next_state(current), bind_state, deduplicate=False)
+    return merge_apply(next_state(current), bind_state)
 
 
 def hmm(observations: Sequence[Coordinate]) -> RankingFunctionAny:
@@ -72,9 +70,9 @@ def hmm(observations: Sequence[Coordinate]) -> RankingFunctionAny:
         start: Path = ((state, None),)
         return RankingFunctionAny.singleton(start)
 
-    ranking = merge_apply(init(), initialise, deduplicate=False)
+    ranking = merge_apply(init(), initialise)
     for obs in observations:
-        ranking = merge_apply(ranking, lambda path, obs=obs: _advance(path, obs), deduplicate=False)
+        ranking = merge_apply(ranking, lambda path, obs=obs: _advance(path, obs))
     return ranking
 
 
