@@ -6,7 +6,7 @@ import operator
 from typing import List, Tuple
 
 from .. import Rank, RankingFunctionAny
-from ..dsl import normal_exceptional, ranked_apply, take_n
+from ..dsl import normal_exceptional, observe, ranked_apply, take_n
 
 __all__ = [
     "deterministic_sum",
@@ -32,6 +32,7 @@ def uncertain_operator_sum() -> List[Tuple[int, Rank]]:
     """Apply an uncertain operator (addition or subtraction)."""
 
     operator_ranking = normal_exceptional(operator.add, operator.sub)
-    argument_ranking = normal_exceptional(10, -10)
-    ranking = ranked_apply(operator_ranking, 5, argument_ranking)
-    return take_n(ranking, 4)
+    argument_ranking = normal_exceptional(10, 20)
+    ranking = ranked_apply(operator_ranking, argument_ranking, 5)
+    filtered = observe(ranking, lambda value: value in {15, -5}, deduplicate=False)
+    return take_n(filtered, 6)

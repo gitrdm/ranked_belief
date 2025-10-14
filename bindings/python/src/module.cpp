@@ -758,6 +758,62 @@ Create an empty ranking with no elements.
             },
             py::arg("count"),
             R"pbdoc(Alias for :py:meth:`take_n`.)pbdoc")
+        .def("shift_ranks",
+            [](const rb::RankingFunctionAny& self, const rb::Rank& offset, bool deduplicate) {
+                return self.shift_ranks(offset, deduplicate);
+            },
+            py::arg("offset"),
+            py::arg("deduplicate") = true,
+            R"pbdoc(Return a ranking with every element's rank increased by ``offset``.)pbdoc")
+        .def_static("normal_exceptional",
+            [](const rb::RankingFunctionAny& normal,
+               py::function exceptional,
+               const rb::Rank& offset,
+               bool deduplicate) {
+                if (deduplicate) {
+                    throw py::value_error(
+                        "normal_exceptional cannot deduplicate std::any results");
+                }
+
+                auto exceptional_handle = make_py_object_ptr(exceptional);
+                if (!exceptional_handle) {
+                    throw py::value_error("normal_exceptional expects a callable");
+                }
+
+                auto thunk = [exceptional_handle]() -> rb::RankingFunctionAny {
+                    if (!exceptional_handle) {
+                        throw py::value_error("normal_exceptional callable is no longer available");
+                    }
+                    py::gil_scoped_acquire gil;
+                    py::function callable =
+                        py::reinterpret_borrow<py::function>(exceptional_handle.get());
+                    py::object result = callable();
+                    return result.cast<rb::RankingFunctionAny>();
+                };
+
+                return rb::normal_exceptional_any(normal, std::move(thunk), offset, deduplicate);
+            },
+            py::arg("normal"),
+            py::arg("exceptional"),
+            py::arg("offset") = rb::Rank::from_value(1),
+            py::arg("deduplicate") = false,
+            R"pbdoc(Lazily combine a normal ranking with an exceptional fallback.)pbdoc")
+        .def_static("defer",
+            [](py::function thunk) {
+                auto thunk_handle = make_py_object_ptr(thunk);
+                if (!thunk_handle) {
+                    throw py::value_error("defer expects a callable");
+                }
+                auto deferred = rb::RankingFunctionAny::defer([thunk_handle]() {
+                    py::gil_scoped_acquire gil;
+                    py::function callable = py::reinterpret_borrow<py::function>(thunk_handle.get());
+                    py::object result = callable();
+                    return result.cast<rb::RankingFunctionAny>();
+                });
+                return deferred;
+            },
+            py::arg("thunk"),
+            R"pbdoc(Lazily evaluate a callable that returns a ranking when forced.)pbdoc")
         .def("__bool__", [](const rb::RankingFunctionAny& self) { return !self.is_empty(); });
 
     bind_ranking_function<int>(m, "RankingFunctionInt", "int");

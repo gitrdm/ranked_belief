@@ -92,19 +92,21 @@ template<typename T>
         if (!elem) {
             return nullptr;
         }
-        
-        // Compute shifted rank
+
         Rank new_rank = elem->rank() + shift_amount;
-        
-        // Build next element lazily
+
+        auto compute_value = [elem]() -> T {
+            return elem->value();
+        };
+
         auto compute_next = [build_shifted, elem]()
             -> std::shared_ptr<RankingElement<T>>
         {
             return (*build_shifted)(elem->next());
         };
-        
+
         return std::make_shared<RankingElement<T>>(
-            elem->value(),
+            make_promise(std::move(compute_value)),
             new_rank,
             make_promise(std::move(compute_next))
         );

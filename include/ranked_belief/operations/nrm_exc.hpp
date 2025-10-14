@@ -1,5 +1,9 @@
 #pragma once
 
+#include "ranked_belief/operations/merge.hpp"
+#include "ranked_belief/operations/merge_apply.hpp"
+#include "ranked_belief/promise.hpp"
+#include "ranked_belief/ranking_element.hpp"
 #include "ranked_belief/ranking_function.hpp"
 
 #include <cstddef>
@@ -66,6 +70,46 @@ template<typename T>
     }
 
     return result;
+}
+
+template<typename T, typename ExceptionalThunk>
+requires std::invocable<ExceptionalThunk>
+[[nodiscard]] RankingFunction<T> normal_exceptional(
+    const RankingFunction<T>& normal,
+    ExceptionalThunk exceptional,
+    Rank exceptional_rank = Rank::from_value(1),
+    bool deduplicate = false)
+{
+    if (normal.is_empty()) {
+        auto exceptional_rf = exceptional();
+        if (exceptional_rank != Rank::zero()) {
+            exceptional_rf = shift_ranks(exceptional_rf, exceptional_rank);
+        }
+        return exceptional_rf;
+    }
+
+    auto head = normal.head();
+    auto value_promise = make_promise([head]() -> T { return head->value(); });
+    auto next_promise = make_promise([head,
+                                      deduplicate,
+                                      exceptional,
+                                      exceptional_rank,
+                                      normal_dedup = normal.is_deduplicating()]() {
+        RankingFunction<T> normal_tail(head->next(), normal_dedup);
+        auto exceptional_rf = exceptional();
+        if (exceptional_rank != Rank::zero()) {
+            exceptional_rf = shift_ranks(exceptional_rf, exceptional_rank);
+        }
+        auto merged_tail = merge(normal_tail, exceptional_rf, deduplicate);
+        return merged_tail.head();
+    });
+
+    auto result_head = std::make_shared<RankingElement<T>>(
+        std::move(value_promise),
+        head->rank(),
+        std::move(next_promise));
+
+    return RankingFunction<T>(std::move(result_head), deduplicate);
 }
 
 } // namespace ranked_belief

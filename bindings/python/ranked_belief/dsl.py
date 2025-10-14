@@ -7,6 +7,7 @@ Python while retaining full lazy semantics.
 
 from __future__ import annotations
 
+import inspect
 from typing import Any, Callable, Dict, Iterable, Iterator, Mapping, Sequence
 
 from . import Rank, RankingFunctionAny
@@ -47,6 +48,8 @@ def ensure_ranking(value: Any) -> RankingFunctionAny:
 
     if isinstance(value, RankingFunctionAny):
         return value
+    if callable(value) and _is_zero_arg_callable(value):
+        return RankingFunctionAny.defer(lambda: ensure_ranking(value()))
     return RankingFunctionAny.singleton(value)
 
 
@@ -61,12 +64,38 @@ def normal_exceptional(
 
     offset = _coerce_rank(exceptional_rank)
     normal_rf = ensure_ranking(normal_value)
-    exceptional_rf = ensure_ranking(exceptional_value)
-    shifted = exceptional_rf.map_with_rank(
-        lambda value, rank: (value, rank + offset),
-        deduplicate=False,
+
+    def exceptional_thunk() -> RankingFunctionAny:
+        return ensure_ranking(exceptional_value)
+
+    return RankingFunctionAny.normal_exceptional(
+        normal_rf,
+        lambda: exceptional_thunk(),
+        offset,
+        deduplicate=deduplicate,
     )
-    return normal_rf.merge(shifted, deduplicate=deduplicate)
+
+
+def _is_zero_arg_callable(value: Any) -> bool:
+    if not callable(value):
+        return False
+
+    try:
+        signature = inspect.signature(value)
+    except (TypeError, ValueError):
+        return False
+
+    for parameter in signature.parameters.values():
+        if parameter.kind in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        ) and parameter.default is inspect._empty:
+            return False
+        if parameter.kind == inspect.Parameter.KEYWORD_ONLY and parameter.default is inspect._empty:
+            return False
+        if parameter.kind == inspect.Parameter.VAR_POSITIONAL:
+            return False
+    return True
 
 
 def either_of(values: Iterable[Any], *, deduplicate: bool = False) -> RankingFunctionAny:
@@ -110,7 +139,7 @@ def observe(
     ranking: Any,
     predicate: Callable[[Any], bool],
     *,
-    deduplicate: bool = False,
+    deduplicate: bool = True,
 ) -> RankingFunctionAny:
     """Condition ``ranking`` on a Python predicate."""
 
@@ -122,7 +151,7 @@ def observe_value(
     ranking: Any,
     value: Any,
     *,
-    deduplicate: bool = False,
+    deduplicate: bool = True,
 ) -> RankingFunctionAny:
     """Condition ``ranking`` on equality with ``value``."""
 
@@ -139,7 +168,7 @@ def take_n(ranking: Any, count: int) -> list[tuple[Any, Rank]]:
 def ranked_apply(
     func_or_ranking: Any,
     *args: Any,
-    deduplicate: bool = False,
+    deduplicate: bool = True,
 ) -> RankingFunctionAny:
     """Apply (possibly ranked) functions to (possibly ranked) arguments lazily."""
 
@@ -157,7 +186,7 @@ def ranked_apply(
 
     def loop(index: int, collected: tuple[Any, ...]) -> RankingFunctionAny:
         if index == len(arg_rankings):
-            return ensure_ranking(func_or_ranking(*collected))
+            return ensure_ranking(func_or_ranking(*reversed(collected)))
         return merge_apply(
             arg_rankings[index],
             lambda value: loop(index + 1, collected + (value,)),

@@ -23,6 +23,7 @@
 #include <concepts>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <typeinfo>
@@ -144,6 +145,12 @@ public:
 		const RankingFunctionAny& other,
 		bool deduplicate = true) const;
 
+	[[nodiscard]] RankingFunctionAny shift_ranks(
+		Rank offset,
+		bool deduplicate = true) const;
+	[[nodiscard]] static RankingFunctionAny defer(
+		std::function<RankingFunctionAny()> thunk);
+
 	/**
 	 * @brief Merge an arbitrary collection of rankings.
 	 */
@@ -245,12 +252,17 @@ private:
 		[[nodiscard]] virtual std::unique_ptr<Concept> observe_value(
 			const std::any& value,
 			bool deduplicate) const = 0;
+		[[nodiscard]] virtual std::unique_ptr<Concept> shift_ranks(
+			Rank offset,
+			bool deduplicate) const = 0;
 		[[nodiscard]] virtual std::vector<std::pair<std::any, Rank>> take_n(std::size_t n) const = 0;
 		[[nodiscard]] virtual RankingFunction<std::any> to_any_ranking(bool deduplicate) const = 0;
 	};
 
 	template<typename T>
 	struct Model;
+
+	struct Deferred;
 
 	[[nodiscard]] static std::shared_ptr<const Concept> make_shared(std::unique_ptr<Concept> impl);
 	[[nodiscard]] static std::shared_ptr<const Concept> empty_impl();
@@ -452,6 +464,19 @@ private:
 			}
 		}
 
+		[[nodiscard]] std::unique_ptr<Concept> shift_ranks(
+			Rank offset,
+			bool deduplicate) const override
+		{
+			auto shifted = ranked_belief::map_with_rank(
+				rf,
+				[offset](const T& value, Rank rank) {
+					return std::make_pair(value, rank + offset);
+				},
+				deduplicate);
+			return std::make_unique<Model<T>>(std::move(shifted));
+		}
+
 		[[nodiscard]] std::vector<std::pair<std::any, Rank>> take_n(std::size_t n) const override
 		{
 			auto values = ranked_belief::take_n(rf, n);
@@ -634,6 +659,19 @@ private:
 				"RankingFunctionAny::observe_value is unavailable for std::any payloads"};
 		}
 
+		[[nodiscard]] std::unique_ptr<Concept> shift_ranks(
+			Rank offset,
+			bool deduplicate) const override
+		{
+			auto shifted = ranked_belief::map_with_rank(
+				rf,
+				[offset](const std::any& value, Rank rank) {
+					return std::make_pair(value, rank + offset);
+				},
+				deduplicate);
+			return std::make_unique<Model<std::any>>(std::move(shifted));
+		}
+
 		[[nodiscard]] std::vector<std::pair<std::any, Rank>> take_n(std::size_t n) const override
 		{
 			return ranked_belief::take_n(rf, n);
@@ -645,6 +683,144 @@ private:
 		}
 
 		RankingFunction<std::any> rf;
+	};
+
+	struct RankingFunctionAny::Deferred final : Concept {
+		explicit Deferred(std::function<RankingFunctionAny()> thunk)
+			: thunk_{std::move(thunk)} {}
+
+		[[nodiscard]] std::unique_ptr<Concept> clone() const override
+		{
+			ensure_realised();
+			return realised_->clone();
+		}
+
+		[[nodiscard]] bool is_empty() const override
+		{
+			ensure_realised();
+			return realised_->is_empty();
+		}
+
+		[[nodiscard]] std::any first_value() const override
+		{
+			ensure_realised();
+			return realised_->first_value();
+		}
+
+		[[nodiscard]] std::optional<Rank> first_rank() const override
+		{
+			ensure_realised();
+			return realised_->first_rank();
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> map(
+			const std::function<std::any(const std::any&)>& func,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->map(func, deduplicate);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> map_with_rank(
+			const std::function<std::pair<std::any, Rank>(const std::any&, Rank)>& func,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->map_with_rank(func, deduplicate);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> map_with_index(
+			const std::function<std::any(const std::any&, std::size_t)>& func,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->map_with_index(func, deduplicate);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> filter(
+			const std::function<bool(const std::any&)>& predicate,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->filter(predicate, deduplicate);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> take(std::size_t n) const override
+		{
+			ensure_realised();
+			return realised_->take(n);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> take_while_rank(Rank max_rank) const override
+		{
+			ensure_realised();
+			return realised_->take_while_rank(max_rank);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> merge(
+			const Concept& other,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->merge(other, deduplicate);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> merge_apply(
+			const Concept& functions,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->merge_apply(functions, deduplicate);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> observe(
+			const std::function<bool(const std::any&)>& predicate,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->observe(predicate, deduplicate);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> observe_value(
+			const std::any& value,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->observe_value(value, deduplicate);
+		}
+
+		[[nodiscard]] std::unique_ptr<Concept> shift_ranks(
+			Rank offset,
+			bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->shift_ranks(offset, deduplicate);
+		}
+
+		[[nodiscard]] std::vector<std::pair<std::any, Rank>> take_n(std::size_t n) const override
+		{
+			ensure_realised();
+			return realised_->take_n(n);
+		}
+
+		[[nodiscard]] RankingFunction<std::any> to_any_ranking(bool deduplicate) const override
+		{
+			ensure_realised();
+			return realised_->to_any_ranking(deduplicate);
+		}
+
+	private:
+		void ensure_realised() const
+		{
+			std::call_once(realise_flag_, [this]() {
+				RankingFunctionAny result = thunk_();
+				realised_ = result.impl_;
+			});
+		}
+
+		std::function<RankingFunctionAny()> thunk_;
+		mutable std::once_flag realise_flag_;
+		mutable std::shared_ptr<const Concept> realised_;
 	};
 
 	inline std::shared_ptr<const RankingFunctionAny::Concept> RankingFunctionAny::make_shared(
@@ -730,6 +906,13 @@ inline RankingFunctionAny RankingFunctionAny::merge(
 	return RankingFunctionAny{make_shared(impl_->merge(*other.impl_, deduplicate))};
 }
 
+inline RankingFunctionAny RankingFunctionAny::shift_ranks(
+	Rank offset,
+	bool deduplicate) const
+{
+	return RankingFunctionAny{make_shared(impl_->shift_ranks(std::move(offset), deduplicate))};
+}
+
 inline RankingFunctionAny RankingFunctionAny::merge_all(
 	const std::vector<RankingFunctionAny>& rankings,
 	bool deduplicate)
@@ -782,6 +965,34 @@ inline std::vector<std::pair<std::any, Rank>> RankingFunctionAny::take_n(std::si
 inline RankingFunction<std::any> RankingFunctionAny::to_any_ranking(bool deduplicate) const
 {
 	return impl_->to_any_ranking(deduplicate);
+}
+
+inline RankingFunctionAny RankingFunctionAny::defer(std::function<RankingFunctionAny()> thunk)
+{
+	if (!thunk) {
+		throw std::invalid_argument{"RankingFunctionAny::defer requires a callable thunk"};
+	}
+	return RankingFunctionAny{make_shared(std::make_unique<Deferred>(std::move(thunk)))};
+}
+
+inline RankingFunctionAny normal_exceptional_any(
+ const RankingFunctionAny& normal,
+ std::function<RankingFunctionAny()> exceptional,
+ Rank exceptional_rank,
+ bool deduplicate)
+{
+ auto normal_any = normal.to_any_ranking(false);
+ auto adapter = [exc = std::move(exceptional)]() {
+  return exc().to_any_ranking(false);
+ };
+
+ auto result = normal_exceptional<std::any>(
+  normal_any,
+  adapter,
+  exceptional_rank,
+  deduplicate);
+
+ return RankingFunctionAny{std::move(result)};
 }
 
 } // namespace ranked_belief

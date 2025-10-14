@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List, Tuple
 
 from .. import Rank, RankingFunctionAny
-from ..dsl import observe, take_n
+from ..dsl import normal_exceptional, observe, take_n
 
 __all__ = ["recursive_fun", "first_values", "values_greater_than"]
 
@@ -13,11 +13,10 @@ __all__ = ["recursive_fun", "first_values", "values_greater_than"]
 def recursive_fun(value: int) -> RankingFunctionAny:
     """Port of the Racket ``fun`` definition with full laziness."""
 
-    def generator(index: int) -> tuple[int, Rank]:
-        current_value = value * (2 ** index)
-        return current_value, Rank.from_value(index)
+    def exceptional_branch() -> RankingFunctionAny:
+        return recursive_fun(value * 2)
 
-    return RankingFunctionAny.from_generator(generator, deduplicate=False)
+    return normal_exceptional(value, exceptional_branch, deduplicate=False)
 
 
 def first_values(count: int = 10) -> List[Tuple[int, Rank]]:
