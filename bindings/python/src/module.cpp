@@ -28,6 +28,12 @@ namespace rb = ranked_belief;
 
 namespace {
 
+// Convert Python bool to C++ Deduplication enum
+[[nodiscard]] constexpr rb::Deduplication to_deduplication(bool deduplicate) noexcept
+{
+    return deduplicate ? rb::Deduplication::Enabled : rb::Deduplication::Disabled;
+}
+
 struct PyObjectDeleter {
     void operator()(PyObject* ptr) const noexcept
     {
@@ -239,7 +245,7 @@ requested, preserving the underlying promise-based evaluation strategy.
                     py::function callable = py::reinterpret_borrow<py::function>(func_handle.get());
                     return callable(value).template cast<T>();
                 };
-                return rb::map<T>(rf, std::move(transformer), deduplicate);
+                return rb::map<T>(rf, std::move(transformer), to_deduplication(deduplicate));
             },
             py::arg("func"),
             py::arg("deduplicate") = true,
@@ -261,7 +267,7 @@ after the first evaluation.
                     py::function callable = py::reinterpret_borrow<py::function>(predicate_handle.get());
                     return callable(value).template cast<bool>();
                 };
-                return rb::filter<T>(rf, std::move(pred), deduplicate);
+                return rb::filter<T>(rf, std::move(pred), to_deduplication(deduplicate));
             },
             py::arg("predicate"),
             py::arg("deduplicate") = true,
@@ -273,7 +279,7 @@ produce the filtered ranking. Ranks of retained elements remain unchanged.
 )pbdoc")
         .def("take",
             [](const RF& rf, std::size_t count, bool deduplicate) {
-                return rb::take<T>(rf, count, deduplicate);
+                return rb::take<T>(rf, count, to_deduplication(deduplicate));
             },
             py::arg("count"),
             py::arg("deduplicate") = true,
@@ -285,7 +291,7 @@ requested prefix remain unevaluated.
 )pbdoc")
         .def("take_while_rank",
             [](const RF& rf, const rb::Rank& max_rank, bool deduplicate) {
-                return rb::take_while_rank<T>(rf, max_rank, deduplicate);
+                return rb::take_while_rank<T>(rf, max_rank, to_deduplication(deduplicate));
             },
             py::arg("max_rank"),
             py::arg("deduplicate") = true,
@@ -294,7 +300,7 @@ Retain elements whose rank is at most ``max_rank``.
 )pbdoc")
         .def("merge",
             [](const RF& rf, const RF& other, bool deduplicate) {
-                return rb::merge<T>(rf, other, deduplicate);
+                return rb::merge<T>(rf, other, to_deduplication(deduplicate));
             },
             py::arg("other"),
             py::arg("deduplicate") = true,
@@ -303,7 +309,7 @@ Merge two rankings by ascending rank while preserving laziness.
 )pbdoc")
         .def_static("merge_all",
             [](const std::vector<RF>& rankings, bool deduplicate) {
-                return rb::merge_all<T>(rankings, deduplicate);
+                return rb::merge_all<T>(rankings, to_deduplication(deduplicate));
             },
             py::arg("rankings"),
             py::arg("deduplicate") = true,
@@ -321,7 +327,7 @@ Merge an iterable of rankings in rank order.
                     py::function callable = py::reinterpret_borrow<py::function>(func_handle.get());
                     return callable(value).template cast<RF>();
                 };
-                return rb::merge_apply<T>(rf, std::move(binder), deduplicate);
+                return rb::merge_apply<T>(rf, std::move(binder), to_deduplication(deduplicate));
             },
             py::arg("func"),
             py::arg("deduplicate") = true,
@@ -339,7 +345,7 @@ Apply a function returning rankings and merge all results lazily.
                     py::function callable = py::reinterpret_borrow<py::function>(predicate_handle.get());
                     return callable(value).template cast<bool>();
                 };
-                return rb::observe<T>(rf, std::move(pred), deduplicate);
+                return rb::observe<T>(rf, std::move(pred), to_deduplication(deduplicate));
             },
             py::arg("predicate"),
             py::arg("deduplicate") = true,
@@ -349,7 +355,7 @@ ranks so the most normal surviving element becomes rank 0.
 )pbdoc")
         .def("observe_value",
             [](const RF& rf, const T& value, bool deduplicate) {
-                return rb::observe<T>(rf, value, deduplicate);
+                return rb::observe<T>(rf, value, to_deduplication(deduplicate));
             },
             py::arg("value"),
             py::arg("deduplicate") = true,
@@ -377,7 +383,7 @@ Only the requested prefix is forced; the remainder remains lazy.
         .def("__bool__", [](const RF& rf) { return !rf.is_empty(); })
         .def_static("from_list",
             [](const std::vector<std::pair<T, rb::Rank>>& pairs, bool deduplicate) {
-                return rb::from_list<T>(pairs, deduplicate);
+                return rb::from_list<T>(pairs, to_deduplication(deduplicate));
             },
             py::arg("pairs"),
             py::arg("deduplicate") = true,
@@ -386,7 +392,7 @@ Construct a ranking from explicit ``(value, Rank)`` pairs.
 )pbdoc")
         .def_static("from_values_uniform",
             [](const std::vector<T>& values, const rb::Rank& rank, bool deduplicate) {
-                return rb::from_values_uniform<T>(values, rank, deduplicate);
+                return rb::from_values_uniform<T>(values, rank, to_deduplication(deduplicate));
             },
             py::arg("values"),
             py::arg("rank") = rb::Rank::zero(),
@@ -396,7 +402,7 @@ Construct a ranking where every value receives the same rank.
 )pbdoc")
         .def_static("from_values_sequential",
             [](const std::vector<T>& values, const rb::Rank& start_rank, bool deduplicate) {
-                return rb::from_values_sequential<T>(values, start_rank, deduplicate);
+                return rb::from_values_sequential<T>(values, start_rank, to_deduplication(deduplicate));
             },
             py::arg("values"),
             py::arg("start_rank") = rb::Rank::zero(),
@@ -415,7 +421,7 @@ Construct a ranking assigning increasing ranks starting at ``start_rank``.
                     py::function callable = py::reinterpret_borrow<py::function>(generator_handle.get());
                     return callable(index).template cast<std::pair<T, rb::Rank>>();
                 };
-                return rb::from_generator<T>(std::move(gen), start_index, deduplicate);
+                return rb::from_generator<T>(std::move(gen), start_index, to_deduplication(deduplicate));
             },
             py::arg("generator"),
             py::arg("start_index") = 0,
@@ -527,7 +533,7 @@ Create an empty ranking with no elements.
         .def_static("from_list",
             [](py::iterable pairs, bool deduplicate) {
                 auto native_pairs = parse_value_rank_pairs(pairs);
-                auto native = rb::from_list<std::any>(std::move(native_pairs), deduplicate);
+                auto native = rb::from_list<std::any>(std::move(native_pairs), to_deduplication(deduplicate));
                 return rb::RankingFunctionAny{std::move(native)};
             },
             py::arg("pairs"),
@@ -535,7 +541,9 @@ Create an empty ranking with no elements.
             R"pbdoc(Construct a ranking from explicit ``(value, Rank)`` pairs of Python objects.)pbdoc")
         .def_static("from_generator",
             [](py::function generator, std::size_t start_index, bool deduplicate) {
-                auto native = rb::from_generator<std::any>(
+                // Note: Cannot use from_generator<std::any> because std::any doesn't satisfy
+                // EqualityComparableValue. Manually construct using make_infinite_sequence.
+                auto head = rb::make_infinite_sequence<std::any>(
                     [generator = std::move(generator)](std::size_t index) {
                         py::gil_scoped_acquire gil;
                         py::object result = generator(index);
@@ -546,8 +554,8 @@ Create an empty ranking with no elements.
                         auto rank_obj = tuple[1];
                         return std::make_pair(py_to_any(tuple[0]), rank_obj.cast<rb::Rank>());
                     },
-                    start_index,
-                    deduplicate);
+                    start_index);
+                auto native = rb::RankingFunction<std::any>(head, to_deduplication(deduplicate));
                 return rb::RankingFunctionAny{std::move(native)};
             },
             py::arg("generator"),
@@ -582,7 +590,7 @@ Create an empty ranking with no elements.
                     return py_to_any(std::move(transformed));
                 };
                 try {
-                    return self.map(mapper, deduplicate);
+                    return self.map(mapper, to_deduplication(deduplicate));
                 } catch (const std::logic_error& error) {
                     throw py::value_error(error.what());
                 }
@@ -611,7 +619,7 @@ Create an empty ranking with no elements.
                     return std::make_pair(py_to_any(tuple[0]), rank_obj.cast<rb::Rank>());
                 };
                 try {
-                    return self.map_with_rank(mapper, deduplicate);
+                    return self.map_with_rank(mapper, to_deduplication(deduplicate));
                 } catch (const std::logic_error& error) {
                     throw py::value_error(error.what());
                 }
@@ -635,7 +643,7 @@ Create an empty ranking with no elements.
                     return py_to_any(std::move(transformed));
                 };
                 try {
-                    return self.map_with_index(mapper, deduplicate);
+                    return self.map_with_index(mapper, to_deduplication(deduplicate));
                 } catch (const std::logic_error& error) {
                     throw py::value_error(error.what());
                 }
@@ -658,7 +666,7 @@ Create an empty ranking with no elements.
                     return callable(any_to_py(value)).template cast<bool>();
                 };
                 try {
-                    return self.filter(pred, deduplicate);
+                    return self.filter(pred, to_deduplication(deduplicate));
                 } catch (const std::logic_error& error) {
                     throw py::value_error(error.what());
                 }
@@ -681,7 +689,7 @@ Create an empty ranking with no elements.
         .def("merge",
             [](const rb::RankingFunctionAny& self, const rb::RankingFunctionAny& other, bool deduplicate) {
                 try {
-                    return self.merge(other, deduplicate);
+                    return self.merge(other, to_deduplication(deduplicate));
                 } catch (const std::logic_error& error) {
                     throw py::value_error(error.what());
                 }
@@ -695,7 +703,7 @@ Create an empty ranking with no elements.
                 for (auto item : rankings) {
                     native.push_back(py::cast<rb::RankingFunctionAny>(item));
                 }
-                return rb::RankingFunctionAny::merge_all(native, deduplicate);
+                return rb::RankingFunctionAny::merge_all(native, to_deduplication(deduplicate));
             },
             py::arg("rankings"),
             py::arg("deduplicate") = true,
@@ -706,7 +714,7 @@ Create an empty ranking with no elements.
                 if (!func_handle) {
                     throw py::value_error("merge_apply expects a callable");
                 }
-                auto native = self.to_any_ranking(deduplicate);
+                auto native = self.to_any_ranking(to_deduplication(deduplicate));
                 auto merged = rb::merge_apply<std::any>(
                     native,
                     [func_handle](const std::any& value) {
@@ -718,13 +726,13 @@ Create an empty ranking with no elements.
                         py::object returned = callable(any_to_py(value));
                         try {
                             auto rf_any = returned.cast<rb::RankingFunctionAny>();
-                            return rf_any.to_any_ranking(false);
+                            return rf_any.to_any_ranking(rb::Deduplication::Disabled);
                         } catch (const py::cast_error&) {
                             auto singleton = rb::singleton<std::any>(py_to_any(returned), rb::Rank::zero());
                             return singleton;
                         }
                     },
-                    deduplicate);
+                    to_deduplication(deduplicate));
                 return rb::RankingFunctionAny{std::move(merged)};
             },
             py::arg("func"),
@@ -745,7 +753,7 @@ Create an empty ranking with no elements.
                     return callable(any_to_py(value)).template cast<bool>();
                 };
                 try {
-                    return self.observe(pred, deduplicate);
+                    return self.observe(pred, to_deduplication(deduplicate));
                 } catch (const std::logic_error& error) {
                     throw py::value_error(error.what());
                 }
@@ -756,7 +764,7 @@ Create an empty ranking with no elements.
         .def("observe_value",
             [](const rb::RankingFunctionAny& self, py::object value, bool deduplicate) {
                 try {
-                    return self.observe_value(py_to_any(value), deduplicate);
+                    return self.observe_value(py_to_any(value), to_deduplication(deduplicate));
                 } catch (const std::logic_error& error) {
                     throw py::value_error(error.what());
                 }
@@ -778,7 +786,7 @@ Create an empty ranking with no elements.
             R"pbdoc(Alias for :py:meth:`take_n`.)pbdoc")
         .def("shift_ranks",
             [](const rb::RankingFunctionAny& self, const rb::Rank& offset, bool deduplicate) {
-                return self.shift_ranks(offset, deduplicate);
+                return self.shift_ranks(offset, to_deduplication(deduplicate));
             },
             py::arg("offset"),
             py::arg("deduplicate") = true,
@@ -804,7 +812,7 @@ Create an empty ranking with no elements.
                     return result.cast<rb::RankingFunctionAny>();
                 };
 
-                return rb::normal_exceptional_any(normal, std::move(thunk), offset, deduplicate);
+                return rb::normal_exceptional_any(normal, std::move(thunk), offset, to_deduplication(deduplicate));
             },
             py::arg("normal"),
             py::arg("exceptional"),
