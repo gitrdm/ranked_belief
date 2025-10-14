@@ -70,7 +70,7 @@ def normal_exceptional(
 
     return RankingFunctionAny.normal_exceptional(
         normal_rf,
-        lambda: exceptional_thunk(),
+        exceptional_thunk,
         offset,
         deduplicate=deduplicate,
     )

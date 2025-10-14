@@ -53,6 +53,11 @@ struct callback_error final : std::exception {
     return ranked_belief::RankingFunction<int>();
 }
 
+[[nodiscard]] constexpr ranked_belief::Deduplication to_deduplication(bool deduplicate) noexcept
+{
+    return deduplicate ? ranked_belief::Deduplication::Enabled : ranked_belief::Deduplication::Disabled;
+}
+
 [[nodiscard]] rb_status translate_exception(const std::bad_alloc &)
 {
     return RB_STATUS_ALLOCATION_FAILURE;
@@ -131,7 +136,7 @@ rb_status rb_from_array_int(const int *values, const uint64_t *ranks, size_t cou
             pairs.emplace_back(value, rank);
         }
 
-        auto ranking = ranked_belief::from_list(pairs, true);
+    auto ranking = ranked_belief::from_list(pairs, ranked_belief::Deduplication::Enabled);
         auto handle = make_handle(std::move(ranking));
         *out_ranking = handle.release();
         return RB_STATUS_OK;
@@ -167,7 +172,7 @@ rb_status rb_map_int(const rb_ranking_t *ranking, rb_map_callback_t callback, vo
                 }
                 return output;
             },
-            source->is_deduplicating());
+            to_deduplication(source->is_deduplicating()));
 
         auto handle = make_handle(std::move(mapped));
         *out_ranking = handle.release();
@@ -206,7 +211,7 @@ rb_status rb_filter_int(const rb_ranking_t *ranking, rb_filter_callback_t callba
                 }
                 return keep != 0;
             },
-            source->is_deduplicating());
+            to_deduplication(source->is_deduplicating()));
 
         auto handle = make_handle(std::move(filtered));
         *out_ranking = handle.release();
@@ -240,7 +245,7 @@ rb_status rb_merge_int(const rb_ranking_t *lhs, const rb_ranking_t *rhs, rb_rank
             deduplicate = false;
         }
 
-        auto merged = ranked_belief::merge(lhs_copy, rhs_copy, deduplicate);
+        auto merged = ranked_belief::merge(lhs_copy, rhs_copy, to_deduplication(deduplicate));
         auto handle = make_handle(std::move(merged));
         *out_ranking = handle.release();
         return RB_STATUS_OK;
@@ -266,7 +271,7 @@ rb_status rb_observe_value_int(const rb_ranking_t *ranking, int value, rb_rankin
     }
 
     try {
-        auto observed = ranked_belief::observe(*source, value, source->is_deduplicating());
+    auto observed = ranked_belief::observe(*source, value, to_deduplication(source->is_deduplicating()));
         auto handle = make_handle(std::move(observed));
         *out_ranking = handle.release();
         return RB_STATUS_OK;

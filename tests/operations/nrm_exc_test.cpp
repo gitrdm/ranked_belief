@@ -112,3 +112,34 @@ TEST(NormalExceptionalOperationsTest, TakeNForcesOnlyRequiredPrefix) {
     std::vector<int> expected_values = {0, 1, 2, 3, 4};
     EXPECT_EQ(collect_values(pairs), expected_values);
 }
+
+namespace {
+
+RankingFunction<std::size_t> recursive_normal_exceptional(std::size_t depth) {
+    return normal_exceptional(
+        singleton<std::size_t>(depth, Rank::zero()),
+        [next = depth + 1]() {
+            return recursive_normal_exceptional(next);
+        },
+        Rank::from_value(1),
+        Deduplication::Enabled);
+}
+
+} // namespace
+
+TEST(NormalExceptionalOperationsTest, DeepRecursiveConstructionRemainsLazy) {
+    constexpr std::size_t kDepth = 512;
+    auto rf = recursive_normal_exceptional(0);
+
+    auto pairs = take_n(rf, kDepth);
+    ASSERT_EQ(pairs.size(), kDepth);
+
+    std::vector<std::size_t> expected_values;
+    expected_values.reserve(kDepth);
+    for (std::size_t idx = 0; idx < kDepth; ++idx) {
+        expected_values.push_back(idx);
+        EXPECT_EQ(pairs[idx].second, Rank::from_value(static_cast<uint64_t>(idx)));
+    }
+
+    EXPECT_EQ(collect_values(pairs), expected_values);
+}
