@@ -1,0 +1,3 @@
+RANKED_BELIEF_ROOT ?= ../..
+PKG_CPPFLAGS = -I$(RANKED_BELIEF_ROOT)/include
+PKG_LIBS = -L$(RANKED_BELIEF_ROOT)/build -lranked_belief_c_api -lstdc++

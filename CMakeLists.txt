@@ -11,6 +11,10 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+# Ensure all static libraries are built with position-independent code so they
+# can be linked into shared modules (e.g., language bindings).
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Compiler version checks
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "10.0")

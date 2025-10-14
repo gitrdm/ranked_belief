@@ -1,0 +1,14 @@
+Package: rankedBeliefR
+Type: Package
+Title: R Bindings for the ranked_belief Library
+Version: 0.0.1
+Authors@R: person(given = "Ranked", family = "Belief", role = c("aut", "cre", "cph"), email = "ranked-belief@example.com")
+Description: Provides an R interface to the ranked_belief lazy ranking library.
+    The package wraps the stable C interoperability layer so that ranked
+    belief sequences can be created, combined, and observed from R while
+    preserving the library's lazy semantics.
+License: MIT + file LICENSE
+Encoding: UTF-8
+SystemRequirements: C++20, CMake-built ranked_belief_c_api in ../../build
+Depends: R (>= 4.1.0)
+NeedsCompilation: yes
