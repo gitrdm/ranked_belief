@@ -77,7 +77,7 @@ CudaSanitizerCommandOptions:
 MemoryCheckType: 
 MemoryCheckSanitizerOptions: 
 MemoryCheckCommand: /usr/bin/valgrind
-MemoryCheckCommandOptions: 
+MemoryCheckCommandOptions: --leak-check=full --error-exitcode=1 --track-origins=yes
 MemoryCheckSuppressionFile: 
 
 # Coverage
