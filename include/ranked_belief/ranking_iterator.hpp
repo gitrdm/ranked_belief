@@ -24,8 +24,11 @@
 #define RANKED_BELIEF_RANKING_ITERATOR_HPP
 
 #include "ranking_element.hpp"
+#include "detail/any_equality_registry.hpp"
+#include <any>
 #include <iterator>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 namespace ranked_belief {
@@ -242,7 +245,11 @@ private:
      * @note This is only called by operator++ when deduplication is enabled
      */
     void skip_duplicates_of(const T& prev_value) {
-        if constexpr (requires(const T& lhs, const T& rhs) { lhs == rhs; }) {
+        if constexpr (std::is_same_v<T, std::any>) {
+            while (current_ && detail::any_values_equal(current_->value(), prev_value)) {
+                current_ = current_->next();
+            }
+        } else if constexpr (requires(const T& lhs, const T& rhs) { lhs == rhs; }) {
             while (current_ && current_->value() == prev_value) {
                 current_ = current_->next();
             }

@@ -208,3 +208,19 @@ def test_take_n_does_not_force_entire_sequence():
     ranking = rb.RankingFunctionInt.from_generator(generator)
     ranking.materialize(2)
     assert calls["count"] <= 3
+
+
+def test_ranking_function_any_map_deduplicates_python_values():
+    ranking = rb.RankingFunctionAny.from_list([
+        (1, rb.Rank.zero()),
+        (3, rb.Rank.from_value(1)),
+        (5, rb.Rank.from_value(2)),
+    ])
+
+    deduped = ranking.map(lambda value: value % 2)
+    materialised = deduped.take_n(3)
+
+    assert len(materialised) == 1
+    value, rank = materialised[0]
+    assert value == 1
+    assert rank == rb.Rank.zero()

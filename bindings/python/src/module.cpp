@@ -7,6 +7,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <typeindex>
 #include <utility>
 #include <vector>
 
@@ -19,6 +20,7 @@
 #include "ranked_belief/operations/observe.hpp"
 #include "ranked_belief/rank.hpp"
 #include "ranked_belief/ranking_function.hpp"
+#include "ranked_belief/detail/any_equality_registry.hpp"
 #include "ranked_belief/type_erasure.hpp"
 
 namespace py = pybind11;
@@ -49,32 +51,48 @@ using PyObjectPtr = std::shared_ptr<PyObject>;
     return PyObjectPtr(raw, PyObjectDeleter{});
 }
 
+struct PyValue {
+    py::object object;
+
+    explicit PyValue(py::handle handle)
+        : object(py::reinterpret_borrow<py::object>(handle))
+    {}
+
+    explicit PyValue(py::object obj)
+        : object(std::move(obj))
+    {}
+};
+
+[[nodiscard]] bool operator==(const PyValue& lhs, const PyValue& rhs)
+{
+    py::gil_scoped_acquire gil;
+    int result = PyObject_RichCompareBool(lhs.object.ptr(), rhs.object.ptr(), Py_EQ);
+    if (result == -1) {
+        throw py::error_already_set();
+    }
+    return result == 1;
+}
+
+[[maybe_unused]] const bool registered_pyvalue_equality = [] {
+    rb::detail::register_any_equality(
+        std::type_index(typeid(PyValue)),
+        [](const std::any& lhs, const std::any& rhs) {
+            return std::any_cast<const PyValue&>(lhs) == std::any_cast<const PyValue&>(rhs);
+        });
+    return true;
+}();
+
 [[nodiscard]] std::any py_to_any(py::handle handle)
 {
-    if (handle.is_none()) {
-        return std::any{std::nullptr_t{}};
-    }
-    if (py::isinstance<py::bool_>(handle)) {
-        return std::any{handle.cast<bool>()};
-    }
-    if (py::isinstance<py::int_>(handle)) {
-        try {
-            return std::any{handle.cast<long long>()};
-        } catch (const py::cast_error&) {
-            return std::any{make_py_object_ptr(handle)};
-        }
-    }
-    if (py::isinstance<py::float_>(handle)) {
-        return std::any{handle.cast<double>()};
-    }
-    if (py::isinstance<py::str>(handle)) {
-        return std::any{handle.cast<std::string>()};
-    }
-    return std::any{make_py_object_ptr(handle)};
+    return std::any{PyValue(handle)};
 }
 
 [[nodiscard]] py::object any_to_py(const std::any& value)
 {
+    if (value.type() == typeid(PyValue)) {
+        const auto& wrapped = std::any_cast<const PyValue&>(value);
+        return wrapped.object;
+    }
     if (value.type() == typeid(PyObjectPtr)) {
         const auto& ptr = std::any_cast<const PyObjectPtr&>(value);
         if (!ptr) {
@@ -570,7 +588,7 @@ Create an empty ranking with no elements.
                 }
             },
             py::arg("func"),
-            py::arg("deduplicate") = false,
+            py::arg("deduplicate") = true,
             R"pbdoc(Map a Python callable lazily across all values.)pbdoc")
         .def("map_with_rank",
             [](const rb::RankingFunctionAny& self, py::function func, bool deduplicate) {
@@ -599,7 +617,7 @@ Create an empty ranking with no elements.
                 }
             },
             py::arg("func"),
-            py::arg("deduplicate") = false,
+            py::arg("deduplicate") = true,
             R"pbdoc(Map a callable that can adjust both value and rank lazily.)pbdoc")
         .def("map_with_index",
             [](const rb::RankingFunctionAny& self, py::function func, bool deduplicate) {
@@ -623,7 +641,7 @@ Create an empty ranking with no elements.
                 }
             },
             py::arg("func"),
-            py::arg("deduplicate") = false,
+            py::arg("deduplicate") = true,
             R"pbdoc(Lazily map values while exposing their zero-based index.)pbdoc")
         .def("filter",
             [](const rb::RankingFunctionAny& self, py::function predicate, bool deduplicate) {
@@ -710,7 +728,7 @@ Create an empty ranking with no elements.
                 return rb::RankingFunctionAny{std::move(merged)};
             },
             py::arg("func"),
-            py::arg("deduplicate") = false,
+            py::arg("deduplicate") = true,
             R"pbdoc(Apply a ranking-valued function to each element lazily and merge the results.)pbdoc")
         .def("observe",
             [](const rb::RankingFunctionAny& self, py::function predicate, bool deduplicate) {
@@ -770,11 +788,6 @@ Create an empty ranking with no elements.
                py::function exceptional,
                const rb::Rank& offset,
                bool deduplicate) {
-                if (deduplicate) {
-                    throw py::value_error(
-                        "normal_exceptional cannot deduplicate std::any results");
-                }
-
                 auto exceptional_handle = make_py_object_ptr(exceptional);
                 if (!exceptional_handle) {
                     throw py::value_error("normal_exceptional expects a callable");
@@ -796,7 +809,7 @@ Create an empty ranking with no elements.
             py::arg("normal"),
             py::arg("exceptional"),
             py::arg("offset") = rb::Rank::from_value(1),
-            py::arg("deduplicate") = false,
+            py::arg("deduplicate") = true,
             R"pbdoc(Lazily combine a normal ranking with an exceptional fallback.)pbdoc")
         .def_static("defer",
             [](py::function thunk) {

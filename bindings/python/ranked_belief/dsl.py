@@ -58,7 +58,7 @@ def normal_exceptional(
     exceptional_value: Any,
     exceptional_rank: Rank | int = Rank.from_value(1),
     *,
-    deduplicate: bool = False,
+    deduplicate: bool = True,
 ) -> RankingFunctionAny:
     """Mirror the ``nrm/exc`` constructor from Racket."""
 
@@ -98,14 +98,14 @@ def _is_zero_arg_callable(value: Any) -> bool:
     return True
 
 
-def either_of(values: Iterable[Any], *, deduplicate: bool = False) -> RankingFunctionAny:
+def either_of(values: Iterable[Any], *, deduplicate: bool = True) -> RankingFunctionAny:
     """Return a ranking that normally selects any value from ``values``."""
 
     pairs = [(value, Rank.zero()) for value in values]
     return RankingFunctionAny.from_list(pairs, deduplicate=deduplicate)
 
 
-def either_or(*values: Any, deduplicate: bool = False) -> RankingFunctionAny:
+def either_or(*values: Any, deduplicate: bool = True) -> RankingFunctionAny:
     """Merge zero or more rankings/values lazily, preferring lower ranks."""
 
     iterator: Iterator[Any] = iter(values)
@@ -124,7 +124,7 @@ def merge_apply(
     ranking: Any,
     func: Callable[[Any], Any],
     *,
-    deduplicate: bool = False,
+    deduplicate: bool = True,
 ) -> RankingFunctionAny:
     """Monadic bind helper that preserves laziness."""
 
@@ -211,7 +211,7 @@ def rlet_star(
         return merge_apply(
             candidate,
             lambda value: loop(index + 1, {**env, name: value}),
-            deduplicate=False,
+            deduplicate=True,
         )
 
     return loop(0, {})

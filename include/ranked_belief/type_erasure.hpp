@@ -310,18 +310,13 @@ private:
 			const std::function<std::any(const std::any&)>& func,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::map cannot deduplicate std::any results"};
-			}
-
 			auto captured = func;
 			auto mapped = ranked_belief::map(
 				rf,
 				[captured](const T& value) -> std::any {
 					return captured(std::any{value});
 				},
-				false);
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
 		}
 
@@ -329,18 +324,13 @@ private:
 			const std::function<std::pair<std::any, Rank>(const std::any&, Rank)>& func,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::map_with_rank cannot deduplicate std::any results"};
-			}
-
 			auto captured = func;
 			auto mapped = ranked_belief::map_with_rank(
 				rf,
 				[captured](const T& value, Rank rank) {
 					return captured(std::any{value}, rank);
 				},
-				false);
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
 		}
 
@@ -348,18 +338,13 @@ private:
 			const std::function<std::any(const std::any&, std::size_t)>& func,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::map_with_index cannot deduplicate std::any results"};
-			}
-
 			auto captured = func;
 			auto mapped = ranked_belief::map_with_index(
 				rf,
 				[captured](const T& value, std::size_t index) -> std::any {
 					return captured(std::any{value}, index);
 				},
-				false);
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
 		}
 
@@ -395,16 +380,10 @@ private:
 				auto merged = ranked_belief::merge(rf, other_model->rf, deduplicate);
 				return std::make_unique<Model<T>>(std::move(merged));
 			}
-
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::merge cannot deduplicate heterogeneous results"};
-			}
-
 			auto merged_any = ranked_belief::merge(
-				to_any_ranking(false),
-				other.to_any_ranking(false),
-				false);
+				to_any_ranking(deduplicate),
+				other.to_any_ranking(deduplicate),
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(merged_any));
 		}
 
@@ -412,25 +391,20 @@ private:
 			const Concept& functions,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::merge_apply cannot deduplicate std::any results"};
-			}
-
 			using AnyFunction = std::function<RankingFunctionAny(const std::any&)>;
 
 			if (auto func_model = dynamic_cast<const Model<AnyFunction>*>(&functions)) {
 				auto result = ranked_belief::merge_apply(
 					rf,
-					[func_rf = func_model->rf](const T& value) {
+					[func_rf = func_model->rf, deduplicate](const T& value) {
 						return ranked_belief::merge_apply(
 							func_rf,
-							[&value](const AnyFunction& fn) {
-								return fn(std::any{value}).to_any_ranking(false);
+							[&value, deduplicate](const AnyFunction& fn) {
+								return fn(std::any{value}).to_any_ranking(deduplicate);
 							},
-							false);
+							deduplicate);
 					},
-					false);
+					deduplicate);
 				return std::make_unique<Model<std::any>>(std::move(result));
 			}
 
@@ -488,12 +462,12 @@ private:
 			return result;
 		}
 
-		[[nodiscard]] RankingFunction<std::any> to_any_ranking(bool /*deduplicate*/) const override
+		[[nodiscard]] RankingFunction<std::any> to_any_ranking(bool deduplicate) const override
 		{
 			return ranked_belief::map(
 				rf,
 				[](const T& value) -> std::any { return std::any{value}; },
-				false);
+				deduplicate);
 		}
 
 		RankingFunction<T> rf;
@@ -536,15 +510,11 @@ private:
 			const std::function<std::any(const std::any&)>& func,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::map cannot deduplicate std::any results"};
-			}
 			auto captured = func;
 			auto mapped = ranked_belief::map(
 				rf,
 				[captured](const std::any& value) { return captured(value); },
-				false);
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
 		}
 
@@ -552,17 +522,13 @@ private:
 			const std::function<std::pair<std::any, Rank>(const std::any&, Rank)>& func,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::map_with_rank cannot deduplicate std::any results"};
-			}
 			auto captured = func;
 			auto mapped = ranked_belief::map_with_rank(
 				rf,
 				[captured](const std::any& value, Rank rank) {
 					return captured(value, rank);
 				},
-				false);
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
 		}
 
@@ -570,17 +536,13 @@ private:
 			const std::function<std::any(const std::any&, std::size_t)>& func,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::map_with_index cannot deduplicate std::any results"};
-			}
 			auto captured = func;
 			auto mapped = ranked_belief::map_with_index(
 				rf,
 				[captured](const std::any& value, std::size_t index) {
 					return captured(value, index);
 				},
-				false);
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(mapped));
 		}
 
@@ -588,15 +550,11 @@ private:
 			const std::function<bool(const std::any&)>& predicate,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::filter cannot deduplicate std::any results"};
-			}
 			auto captured = predicate;
 			auto filtered = ranked_belief::filter(
 				rf,
 				[captured](const std::any& value) { return captured(value); },
-				false);
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(filtered));
 		}
 
@@ -616,14 +574,10 @@ private:
 			const Concept& other,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::merge cannot deduplicate std::any results"};
-			}
 			auto merged = ranked_belief::merge(
 				rf,
-				other.to_any_ranking(false),
-				false);
+				other.to_any_ranking(deduplicate),
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(merged));
 		}
 
@@ -639,15 +593,11 @@ private:
 			const std::function<bool(const std::any&)>& predicate,
 			bool deduplicate) const override
 		{
-			if (deduplicate) {
-				throw std::logic_error{
-					"RankingFunctionAny::observe cannot deduplicate std::any results"};
-			}
 			auto captured = predicate;
 			auto observed = ranked_belief::observe(
 				rf,
 				[captured](const std::any& value) { return captured(value); },
-				false);
+				deduplicate);
 			return std::make_unique<Model<std::any>>(std::move(observed));
 		}
 
@@ -677,9 +627,15 @@ private:
 			return ranked_belief::take_n(rf, n);
 		}
 
-		[[nodiscard]] RankingFunction<std::any> to_any_ranking(bool /*deduplicate*/) const override
+		[[nodiscard]] RankingFunction<std::any> to_any_ranking(bool deduplicate) const override
 		{
-			return rf;
+			if (rf.is_deduplicating() == deduplicate) {
+				return rf;
+			}
+			return ranked_belief::map(
+				rf,
+				[](const std::any& value) { return value; },
+				deduplicate);
 		}
 
 		RankingFunction<std::any> rf;
@@ -921,18 +877,13 @@ inline RankingFunctionAny RankingFunctionAny::merge_all(
 		return RankingFunctionAny{};
 	}
 
-	if (deduplicate) {
-		throw std::logic_error{
-			"RankingFunctionAny::merge_all cannot deduplicate std::any results"};
-	}
-
 	std::vector<RankingFunction<std::any>> as_any;
 	as_any.reserve(rankings.size());
 	for (const auto& rf : rankings) {
-		as_any.emplace_back(rf.to_any_ranking(false));
+		as_any.emplace_back(rf.to_any_ranking(deduplicate));
 	}
 
-	auto merged = ranked_belief::merge_all(as_any, false);
+	auto merged = ranked_belief::merge_all(as_any, deduplicate);
 	return RankingFunctionAny{make_shared(std::make_unique<Model<std::any>>(std::move(merged)))};
 }
 
@@ -981,9 +932,9 @@ inline RankingFunctionAny normal_exceptional_any(
  Rank exceptional_rank,
  bool deduplicate)
 {
- auto normal_any = normal.to_any_ranking(false);
- auto adapter = [exc = std::move(exceptional)]() {
-  return exc().to_any_ranking(false);
+ auto normal_any = normal.to_any_ranking(deduplicate);
+ auto adapter = [exc = std::move(exceptional), deduplicate]() {
+	return exc().to_any_ranking(deduplicate);
  };
 
  auto result = normal_exceptional<std::any>(
