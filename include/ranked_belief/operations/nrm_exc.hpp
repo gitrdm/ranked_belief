@@ -80,36 +80,21 @@ requires std::invocable<ExceptionalThunk>
     Rank exceptional_rank = Rank::from_value(1),
     bool deduplicate = false)
 {
-    if (normal.is_empty()) {
-        auto exceptional_rf = exceptional();
-        if (exceptional_rank != Rank::zero()) {
-            exceptional_rf = shift_ranks(exceptional_rf, exceptional_rank);
-        }
-        return exceptional_rf;
+    // Robust implementation: merge the normal ranking with the exceptional
+    // ranking (shifted by exceptional_rank). The previous optimization that
+    // unconditionally took `normal.head()` as the overall head could produce
+    // a sequence where the first element has a larger rank than subsequent
+    // exceptional elements (violating the non-decreasing rank invariant).
+    // Merging here preserves ordering and is fully lazy via `merge`.
+    auto exceptional_rf = exceptional();
+    if (exceptional_rank != Rank::zero()) {
+        exceptional_rf = shift_ranks(exceptional_rf, exceptional_rank);
     }
 
-    auto head = normal.head();
-    auto value_promise = make_promise([head]() -> T { return head->value(); });
-    auto next_promise = make_promise([head,
-                                      deduplicate,
-                                      exceptional,
-                                      exceptional_rank,
-                                      normal_dedup = normal.is_deduplicating()]() {
-        RankingFunction<T> normal_tail(head->next(), normal_dedup);
-        auto exceptional_rf = exceptional();
-        if (exceptional_rank != Rank::zero()) {
-            exceptional_rf = shift_ranks(exceptional_rf, exceptional_rank);
-        }
-        auto merged_tail = merge(normal_tail, exceptional_rf, deduplicate);
-        return merged_tail.head();
-    });
-
-    auto result_head = std::make_shared<RankingElement<T>>(
-        std::move(value_promise),
-        head->rank(),
-        std::move(next_promise));
-
-    return RankingFunction<T>(std::move(result_head), deduplicate);
+    // Merge normal and exceptional (shifted) ranking functions. `merge`
+    // preserves rank ordering and will select the true minimum-ranked element
+    // as the head, avoiding underflow during normalization later on.
+    return merge(normal, exceptional_rf, deduplicate);
 }
 
 } // namespace ranked_belief

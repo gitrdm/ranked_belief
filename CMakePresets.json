@@ -1,0 +1,67 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "RANKED_BELIEF_BUILD_TESTS": "ON",
+        "RANKED_BELIEF_BUILD_FUZZERS": "OFF",
+        "RANKED_BELIEF_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "debug",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "RANKED_BELIEF_BUILD_TESTS": "ON",
+        "RANKED_BELIEF_BUILD_FUZZERS": "OFF",
+        "RANKED_BELIEF_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "tests",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-test",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "RANKED_BELIEF_BUILD_TESTS": "ON",
+        "RANKED_BELIEF_BUILD_FUZZERS": "OFF"
+      }
+    },
+    {
+      "name": "sanitizers",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-sanitizers",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "RANKED_BELIEF_ENABLE_SANITIZERS": "ON",
+        "RANKED_BELIEF_BUILD_FUZZERS": "OFF"
+      }
+    },
+    {
+      "name": "fuzz",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-fuzz",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "RANKED_BELIEF_BUILD_FUZZERS": "ON",
+        "RANKED_BELIEF_ENABLE_SANITIZERS": "ON",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "default", "configurePreset": "default" },
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "tests", "configurePreset": "tests" },
+    { "name": "sanitizers", "configurePreset": "sanitizers" },
+    { "name": "fuzz", "configurePreset": "fuzz" }
+  ]
+}

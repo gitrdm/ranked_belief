@@ -1,0 +1,5 @@
+if(EXISTS "/home/rdmerrio/gits/ranked_belief/build-test/tests/ranked_belief_tests[1]_tests.cmake")
+  include("/home/rdmerrio/gits/ranked_belief/build-test/tests/ranked_belief_tests[1]_tests.cmake")
+else()
+  add_test(ranked_belief_tests_NOT_BUILT ranked_belief_tests_NOT_BUILT)
+endif()
