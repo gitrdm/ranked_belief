@@ -1,0 +1,16 @@
+test_that("singleton, from_array, take_n, first, is_empty work", {
+  r <- rb_singleton_int(42)
+  expect_false(rb_is_empty(r))
+  first <- rb_first_int(r)
+  expect_type(first$value, "integer")
+  expect_equal(first$value, 42)
+  df <- rb_take_n_int(r, 1)
+  expect_equal(nrow(df), 1)
+  rb_free(r)
+
+  r2 <- rb_from_array_int(values = c(1L,2L,3L), ranks = c(0,1,2))
+  expect_false(rb_is_empty(r2))
+  df2 <- rb_take_n_int(r2, 3)
+  expect_equal(nrow(df2), 3)
+  rb_free(r2)
+})

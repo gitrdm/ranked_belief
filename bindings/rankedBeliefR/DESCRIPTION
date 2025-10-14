@@ -12,3 +12,4 @@ Encoding: UTF-8
 SystemRequirements: C++20, CMake-built ranked_belief_c_api in ../../build
 Depends: R (>= 4.1.0)
 NeedsCompilation: yes
+Suggests: testthat (>= 3.0.0)
