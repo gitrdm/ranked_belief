@@ -13,6 +13,7 @@
 #ifndef RANKED_BELIEF_RANKING_ELEMENT_HPP
 #define RANKED_BELIEF_RANKING_ELEMENT_HPP
 
+#include "concepts.hpp"
 #include "promise.hpp"
 #include "rank.hpp"
 
@@ -280,7 +281,8 @@ template<typename T>
  * });
  * @endcode
  */
-template<typename T, typename F>
+template<typename T, Invocable F>
+requires std::same_as<std::invoke_result_t<F>, std::shared_ptr<RankingElement<T>>>
 [[nodiscard]] std::shared_ptr<RankingElement<T>> make_lazy_element(
     T value,
     Rank rank,
@@ -311,7 +313,8 @@ template<typename T, typename F>
  * });
  * @endcode
  */
-template<typename T, typename Generator>
+template<typename T, Invocable<std::size_t> Generator>
+requires std::same_as<std::invoke_result_t<Generator, std::size_t>, std::pair<T, Rank>>
 [[nodiscard]] std::shared_ptr<RankingElement<T>> make_infinite_sequence(
     Generator generator,
     size_t start_index = 0) {

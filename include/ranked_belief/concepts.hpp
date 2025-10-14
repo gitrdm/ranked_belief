@@ -26,11 +26,8 @@ template<typename F, typename T>
 concept LazyComputation = ValueFactory<F, T>;
 
 // Iterator and range concepts
-template<typename T>
-concept RankingIterator = requires(T it) {
-    { *it } -> std::convertible_to<std::pair<typename T::value_type::first_type, ::ranked_belief::Rank>>;
-    { ++it } -> std::same_as<T&>;
-    { it == it } -> std::convertible_to<bool>;
-};
+// Note: We intentionally do not define a RankingIterator concept to avoid
+// name collision with the RankingIterator class template.
+// If needed in the future, use a different name like RankingIteratorType.
 
 #endif // RANKED_BELIEF_CONCEPTS_HPP

@@ -19,6 +19,7 @@
 #ifndef RANKED_BELIEF_PROMISE_HPP
 #define RANKED_BELIEF_PROMISE_HPP
 
+#include "concepts.hpp"
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -259,7 +260,8 @@ private:
  * auto p = make_promise([]() { return 42; });
  * @endcode
  */
-template<typename F>
+template<Invocable F>
+requires ValueType<std::invoke_result_t<std::decay_t<F>>>
 [[nodiscard]] auto make_promise(F&& computation)
     -> Promise<std::invoke_result_t<std::decay_t<F>>> {
     using T = std::invoke_result_t<std::decay_t<F>>;
@@ -281,6 +283,7 @@ template<typename F>
  * @endcode
  */
 template<typename T>
+requires ValueType<std::decay_t<T>>
 [[nodiscard]] Promise<std::decay_t<T>> make_promise_value(T&& value) {
     return Promise<std::decay_t<T>>(std::forward<T>(value));
 }

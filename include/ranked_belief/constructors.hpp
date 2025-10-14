@@ -176,7 +176,7 @@ template<ValueType T>
  * // Creates: 1@1, 2@4, 3@9, 4@16, 5@25
  * @endcode
  */
-template<typename T, typename F>
+template<EqualityComparableValue T, typename F>
 requires std::invocable<F, const T&, std::size_t> &&
          std::same_as<std::invoke_result_t<F, const T&, std::size_t>, Rank>
 [[nodiscard]] RankingFunction<T> from_values_with_ranker(
@@ -223,7 +223,7 @@ requires std::invocable<F, const T&, std::size_t> &&
  * // Creates infinite sequence: 0@0, 1@1, 2@2, ...
  * @endcode
  */
-template<typename T, typename F>
+template<EqualityComparableValue T, typename F>
 requires std::invocable<F, std::size_t> &&
          std::same_as<std::invoke_result_t<F, std::size_t>, std::pair<T, Rank>>
 [[nodiscard]] RankingFunction<T> from_generator(
