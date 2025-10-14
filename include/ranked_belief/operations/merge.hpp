@@ -160,7 +160,7 @@ template<typename T>
             return make_lazy_node(
                 std::move(value_wrapper),
                 elem1_rank,
-                make_promise([self, elem1, elem2, seen_rank, compute_next]() {
+                make_promise([elem1, elem2, seen_rank, compute_next]() {
                     auto next_elem1 = elem1->next();
                     if (next_elem1 == elem2) return next_elem1;
                     return compute_next(next_elem1, elem2, seen_rank);
@@ -179,7 +179,7 @@ template<typename T>
             return make_lazy_node(
                 std::move(value_wrapper),
                 elem1_rank,
-                make_promise([self, elem1, elem2, elem1_rank, compute_next]() {
+                make_promise([elem1, elem2, elem1_rank, compute_next]() {
                     auto next_elem1 = elem1->next();
                     if (next_elem1 == elem2) return next_elem1;
                     return compute_next(next_elem1, elem2, elem1_rank);
@@ -196,7 +196,7 @@ template<typename T>
             return make_lazy_node(
                 std::move(value_wrapper),
                 elem2_rank,
-                make_promise([self, elem1, elem2, elem2_rank, compute_next]() {
+                make_promise([elem1, elem2, elem2_rank, compute_next]() {
                     auto next_elem2 = elem2->next();
                     if (elem1 == next_elem2) return elem1;
                     return compute_next(elem1, next_elem2, elem2_rank);
