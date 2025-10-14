@@ -1,7 +1,8 @@
 # rankedBeliefR
 
 R bindings for the `ranked_belief` lazy ranking library. The package links
-against the C interoperability layer that ships with the repository.
+against the C interoperability layer that ships with the repository. It is
+a PoC wrapper to test the ffi of the library for use in R.
 
 ## Prerequisites
 

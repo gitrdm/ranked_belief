@@ -101,6 +101,28 @@ rb_free <- function(ranking) {
   invisible(.Call(rankedbeliefr_free, ranking))
 }
 
+#' Lazily map values in a ranking using an R callback.
+#'
+#' @param ranking A ranking handle.
+#' @param f A function of one argument (value) returning an integer.
+#' @return A new ranking handle representing the mapped sequence.
+#' @export
+rb_map_int <- function(ranking, f) {
+  if (!is.function(f)) stop("`f` must be a function", call. = FALSE)
+  .Call(rankedbeliefr_map_int, ranking, f)
+}
+
+#' Lazily filter values in a ranking using an R predicate.
+#'
+#' @param ranking A ranking handle.
+#' @param pred A function of one argument (value) returning TRUE/FALSE.
+#' @return A new ranking handle representing the filtered sequence.
+#' @export
+rb_filter_int <- function(ranking, pred) {
+  if (!is.function(pred)) stop("`pred` must be a function", call. = FALSE)
+  .Call(rankedbeliefr_filter_int, ranking, pred)
+}
+
 #' @export
 print.ranked_belief_ranking <- function(x, n = 6L, ...) {
   cat("<ranked_belief_ranking>\n", sep = "")
