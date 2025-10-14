@@ -25,6 +25,7 @@
 
 #include "ranking_element.hpp"
 #include "detail/any_equality_registry.hpp"
+#include "types.hpp"
 #include <any>
 #include <iterator>
 #include <memory>
@@ -94,12 +95,12 @@ public:
      * before it to be a duplicate of), so no skipping occurs in the constructor.
      *
      * @param start The starting element (nullptr for end sentinel)
-     * @param deduplicate If true, skip consecutive elements with equal values
+     * @param deduplicate If Enabled, skip consecutive elements with equal values
      */
     explicit RankingIterator(std::shared_ptr<RankingElement<T>> start, 
-                            bool deduplicate = true)
+                            Deduplication deduplicate = Deduplication::Enabled)
         : current_(std::move(start))
-        , deduplicate_(deduplicate) 
+        , deduplicate_(to_bool(deduplicate)) 
     {
         // Constructor does not skip - first element is always valid
     }

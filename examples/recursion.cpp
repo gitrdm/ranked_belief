@@ -75,7 +75,7 @@ int main() {
     const auto observed = rb::observe(
         ranking_for_observe,
         [](int v) { return v > 100; },
-        /*deduplicate=*/false);
+        Deduplication::Disabled);
     const auto observed_prefix = rb::take_n(observed, 5);
 
     std::cout << "Values greater than 100 (first five):\n";

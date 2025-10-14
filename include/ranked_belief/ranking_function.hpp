@@ -31,6 +31,7 @@
 
 #include "ranking_element.hpp"
 #include "ranking_iterator.hpp"
+#include "types.hpp"
 #include <memory>
 #include <optional>
 #include <utility>
@@ -102,15 +103,15 @@ public:
      * and all its successors (accessed via next() pointers) form the sequence.
      *
      * @param head The first element of the sequence (nullptr for empty)
-     * @param deduplicate If true, iterators will skip consecutive equal values
+     * @param deduplicate If Enabled, iterators will skip consecutive equal values
      *
      * @note The head element is stored via shared_ptr, so ownership is shared
      *       with the caller if they retain a reference.
      */
     explicit RankingFunction(std::shared_ptr<RankingElement<T>> head,
-                            bool deduplicate = true) noexcept
+                            Deduplication deduplicate = Deduplication::Enabled) noexcept
         : head_(std::move(head))
-        , deduplicate_(deduplicate)
+        , deduplicate_(to_bool(deduplicate))
     {}
 
     /**
@@ -128,7 +129,7 @@ public:
      *       at the start. Each iterator can advance independently.
      */
     [[nodiscard]] iterator begin() const noexcept {
-        return iterator(head_, deduplicate_);
+        return iterator(head_, from_bool(deduplicate_));
     }
 
     /**
@@ -285,7 +286,7 @@ template<typename T>
  *
  * @tparam T The value type (deduced from head)
  * @param head The first element of the sequence
- * @param deduplicate If true, enable deduplication (default: true)
+ * @param deduplicate Deduplication strategy (default: Enabled)
  * @return A ranking function starting at head
  *
  * Example:
@@ -297,7 +298,7 @@ template<typename T>
 template<typename T>
 [[nodiscard]] RankingFunction<T> make_ranking_function(
     std::shared_ptr<RankingElement<T>> head,
-    bool deduplicate = true) noexcept
+    Deduplication deduplicate = Deduplication::Enabled) noexcept
 {
     return RankingFunction<T>(std::move(head), deduplicate);
 }
@@ -325,7 +326,7 @@ template<typename T>
     Rank rank = Rank::zero()) noexcept
 {
     auto head = make_terminal(std::move(value), rank);
-    return RankingFunction<T>(std::move(head), true);
+    return RankingFunction<T>(std::move(head), Deduplication::Enabled);
 }
 
 } // namespace ranked_belief

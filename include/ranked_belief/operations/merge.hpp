@@ -61,12 +61,12 @@ template<typename T>
 [[nodiscard]] RankingFunction<T> merge(
     const RankingFunction<T>& rf1,
     const RankingFunction<T>& rf2,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     // Special case: if both ranking functions have the same head, return one of them
     // This handles merging a sequence with itself, which should produce the same sequence
     if (rf1.head() == rf2.head()) {
-        if (!deduplicate) {
+        if (deduplicate == Deduplication::Disabled) {
             // If deduplication is off, make a lazy deep copy of rf2 and merge rf1 with the copy directly
             auto rf2_copy_head = lazy_deepcopy_ranking_sequence<T>(rf2.head());
             // Do NOT call merge recursively with rf1 and rf2_copy, as that can reintroduce shared structure
@@ -123,7 +123,7 @@ template<typename T>
                 }
             };
             auto merged_head = build_merged_impl(build_merged_impl, rf1.head(), rf2_copy_head, Rank::zero());
-            return RankingFunction<T>(merged_head, false);
+            return RankingFunction<T>(merged_head, Deduplication::Disabled);
         }
         return rf1;
     }
@@ -244,7 +244,7 @@ template<typename T>
 template<typename T>
 [[nodiscard]] RankingFunction<T> merge_all(
     const std::vector<RankingFunction<T>>& rankings,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     if (rankings.empty()) {
         return RankingFunction<T>();

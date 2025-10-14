@@ -34,18 +34,15 @@
 namespace ranked_belief {
 
 /**
- * @brief Create a ranking function from a list of value-rank pairs.
+ * @brief Create a ranking function from a vector of value-rank pairs.
  *
- * Constructs a ranking function from an explicit list of (value, rank) pairs.
- * The pairs are processed in order, building a lazy linked list structure.
+ * Creates a finite ranking function from a vector of (value, rank) pairs.
+ * The pairs should be provided in rank order (lowest rank first).
  *
- * @tparam T The value type (deduced from pairs)
+ * @tparam T The value type (must satisfy ValueType concept)
  * @param pairs Vector of (value, rank) pairs
- * @param deduplicate If true, enable deduplication (default: true)
- * @return RankingFunction containing the specified pairs
- *
- * @note Pairs should be provided in non-decreasing rank order for proper
- *       ranking function semantics. No validation is performed.
+ * @param deduplicate Deduplication strategy (default: Enabled)
+ * @return A ranking function containing the given pairs
  *
  * Example:
  * @code
@@ -59,7 +56,7 @@ namespace ranked_belief {
 template<ValueType T>
 [[nodiscard]] RankingFunction<T> from_list(
     const std::vector<std::pair<T, Rank>>& pairs,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     if (pairs.empty()) {
         return RankingFunction<T>();
@@ -96,7 +93,7 @@ template<ValueType T>
 [[nodiscard]] RankingFunction<T> from_values_uniform(
     const std::vector<T>& values,
     Rank rank = Rank::zero(),
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     if (values.empty()) {
         return RankingFunction<T>();
@@ -134,7 +131,7 @@ template<ValueType T>
 [[nodiscard]] RankingFunction<T> from_values_sequential(
     const std::vector<T>& values,
     Rank start_rank = Rank::zero(),
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     if (values.empty()) {
         return RankingFunction<T>();
@@ -182,7 +179,7 @@ requires std::invocable<F, const T&, std::size_t> &&
 [[nodiscard]] RankingFunction<T> from_values_with_ranker(
     const std::vector<T>& values,
     F rank_fn,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     if (values.empty()) {
         return RankingFunction<T>();
@@ -229,7 +226,7 @@ requires std::invocable<F, std::size_t> &&
 [[nodiscard]] RankingFunction<T> from_generator(
     F generator,
     std::size_t start_index = 0,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     auto head = make_infinite_sequence<T>(
         [gen = std::move(generator)](std::size_t i) {
@@ -267,7 +264,7 @@ template<std::ranges::input_range R>
 [[nodiscard]] auto from_range(
     R&& range,
     Rank start_rank = Rank::zero(),
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     using T = std::ranges::range_value_t<R>;
     
@@ -303,7 +300,7 @@ requires requires(R r) {
 }
 [[nodiscard]] auto from_pair_range(
     R&& range,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     using PairType = std::ranges::range_value_t<R>;
     // Remove const from first_type (needed for std::map which has std::pair<const K, V>)

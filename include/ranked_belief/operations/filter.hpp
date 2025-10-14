@@ -60,7 +60,7 @@ requires std::invocable<Pred, const T&> &&
 [[nodiscard]] RankingFunction<T> filter(
     const RankingFunction<T>& rf,
     Pred predicate,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     // Helper function to recursively build the filtered sequence
     // Use shared_ptr to allow safe capture in lazy computations
@@ -155,7 +155,7 @@ template<typename T>
 [[nodiscard]] RankingFunction<T> take(
     const RankingFunction<T>& rf,
     std::size_t n,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     // Base case: if n is 0, return empty ranking
     if (n == 0) {
@@ -242,7 +242,7 @@ template<typename T>
 [[nodiscard]] RankingFunction<T> take_while_rank(
     const RankingFunction<T>& rf,
     Rank max_rank,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     // Helper function to recursively build the rank-filtered sequence
     // Use shared_ptr to allow safe capture in lazy computations

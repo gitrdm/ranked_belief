@@ -126,7 +126,7 @@ template<typename T>
     
     return RankingFunction<T>(
         (*build_shifted)(rf.head()),
-        rf.is_deduplicating()
+        from_bool(rf.is_deduplicating())
     );
 }
 
@@ -180,7 +180,7 @@ template<typename T, typename Func>
 [[nodiscard]] auto merge_apply(
     const RankingFunction<T>& rf,
     Func&& func,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
     -> std::invoke_result_t<Func, const T&>
 {
     using ResultRF = std::invoke_result_t<Func, const T&>;

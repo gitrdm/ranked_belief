@@ -114,9 +114,9 @@ TEST(ObserveTest, ObserveRespectsDeduplicationEnabled) {
         {2, Rank::from_value(1)},
         {2, Rank::from_value(3)},
         {3, Rank::from_value(5)}
-    }, false);
+    }, Deduplication::Disabled);
 
-    auto observed = observe(rf, 2, true);
+    auto observed = observe(rf, 2, Deduplication::Enabled);
     auto items = collect_pairs(observed);
 
     ASSERT_EQ(items.size(), 1);
@@ -130,9 +130,9 @@ TEST(ObserveTest, ObservePreservesDuplicatesWhenDisabled) {
         {2, Rank::from_value(1)},
         {2, Rank::from_value(4)},
         {3, Rank::from_value(6)}
-    }, false);
+    }, Deduplication::Disabled);
 
-    auto observed = observe(rf, 2, false);
+    auto observed = observe(rf, 2, Deduplication::Disabled);
     auto items = collect_pairs(observed);
 
     ASSERT_EQ(items.size(), 2);

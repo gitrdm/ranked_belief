@@ -78,7 +78,7 @@ requires std::invocable<ExceptionalThunk>
     const RankingFunction<T>& normal,
     ExceptionalThunk exceptional,
     Rank exceptional_rank = Rank::from_value(1),
-    bool deduplicate = false)
+    Deduplication deduplicate = Deduplication::Disabled)
 {
     // Robust implementation: merge the normal ranking with the exceptional
     // ranking (shifted by exceptional_rank). The previous optimization that

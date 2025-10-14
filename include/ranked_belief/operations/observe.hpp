@@ -90,7 +90,7 @@ requires std::invocable<Pred, const T&> &&
 [[nodiscard]] RankingFunction<T> observe(
     const RankingFunction<T>& rf,
     Pred predicate,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     auto filtered = filter(rf, std::move(predicate), deduplicate);
     auto head = filtered.head();
@@ -101,14 +101,14 @@ requires std::invocable<Pred, const T&> &&
 
     const Rank shift_amount = head->rank();
     if (shift_amount.is_infinity()) {
-        return RankingFunction<T>(nullptr, filtered.is_deduplicating());
+        return RankingFunction<T>(nullptr, from_bool(filtered.is_deduplicating()));
     }
     if (shift_amount == Rank::zero()) {
         return filtered;
     }
 
     auto normalized_head = detail::normalize_with_shift(head, shift_amount);
-    return RankingFunction<T>(normalized_head, filtered.is_deduplicating());
+    return RankingFunction<T>(normalized_head, from_bool(filtered.is_deduplicating()));
 }
 
 /**
@@ -118,7 +118,7 @@ template<typename T>
 [[nodiscard]] RankingFunction<T> observe(
     const RankingFunction<T>& rf,
     const T& observed_value,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
 {
     return observe(
         rf,

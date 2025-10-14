@@ -303,7 +303,7 @@ TEST_F(MergeTest, MergeWithDeduplication) {
         {3, Rank::from_value(1)}
     });
     
-    auto merged = merge(rf1, rf2, true);
+    auto merged = merge(rf1, rf2, Deduplication::Enabled);
     
     auto values = collect_values(merged);
     // With deduplication, consecutive 2's should be deduplicated
@@ -321,7 +321,7 @@ TEST_F(MergeTest, MergeWithoutDeduplication) {
         {3, Rank::from_value(1)}
     });
     
-    auto merged = merge(rf1, rf2, false);
+    auto merged = merge(rf1, rf2, Deduplication::Disabled);
     
     auto values = collect_values(merged);
     // Without deduplication, both 2's should appear
@@ -505,7 +505,7 @@ TEST_F(MergeTest, MergeTwoIdenticalSequences) {
     EXPECT_EQ(result_dedup, expected_dedup);
     
     // With deduplicate=false, we get all values from both sequences
-    auto merged_no_dedup = merge(rf1, rf2, false);
+    auto merged_no_dedup = merge(rf1, rf2, Deduplication::Disabled);
     auto result_no_dedup = collect_values(merged_no_dedup);
     std::vector<int> expected_no_dedup = {1, 1, 2, 2, 3, 3};
     EXPECT_EQ(result_no_dedup, expected_no_dedup);

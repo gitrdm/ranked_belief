@@ -207,10 +207,10 @@ TEST_F(MapOperationsTest, MapWithDeduplication) {
         {2, Rank::from_value(1)},
         {2, Rank::from_value(2)},
         {3, Rank::from_value(3)}
-    }, false);  // No deduplication in source
+    }, Deduplication::Disabled);  // No deduplication in source
     
     // Map that doesn't change values, with deduplication enabled
-    auto mapped = map(rf, [](int x) { return x; }, true);
+    auto mapped = map(rf, [](int x) { return x; }, Deduplication::Enabled);
     
     std::vector<int> result;
     for (auto [value, rank] : mapped) {
@@ -227,10 +227,10 @@ TEST_F(MapOperationsTest, MapWithoutDeduplication) {
         {2, Rank::from_value(1)},
         {2, Rank::from_value(2)},
         {3, Rank::from_value(3)}
-    }, false);
+    }, Deduplication::Disabled);
     
     // Map with deduplication disabled
-    auto mapped = map(rf, [](int x) { return x; }, false);
+    auto mapped = map(rf, [](int x) { return x; }, Deduplication::Disabled);
     
     std::vector<int> result;
     for (auto [value, rank] : mapped) {
@@ -245,7 +245,7 @@ TEST_F(MapOperationsTest, MapCreatesNewDuplicates) {
     auto rf = from_values_sequential(std::vector<int>{1, 2, 3, 4});
     
     // Map that creates duplicates (multiple inputs map to same output)
-    auto mapped = map(rf, [](int x) { return x / 2; }, true);
+    auto mapped = map(rf, [](int x) { return x / 2; }, Deduplication::Enabled);
     
     std::vector<int> result;
     for (auto [value, rank] : mapped) {
@@ -490,7 +490,7 @@ TEST_F(MapOperationsTest, MapConstantFunction) {
     std::vector<int> values{1, 2, 3, 4, 5};
     auto rf = from_values_sequential(values);
     
-    auto mapped = map(rf, [](int) { return 42; }, true);
+    auto mapped = map(rf, [](int) { return 42; }, Deduplication::Enabled);
     
     // With deduplication, all map to same value
     EXPECT_EQ(mapped.size(), 1);

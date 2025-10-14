@@ -56,7 +56,7 @@ std::ostream& operator<<(std::ostream& os, const CircuitOutcome& outcome) {
         {normal_value, rb::Rank::zero()},
         {exceptional_value, exceptional_rank}
     },
-    /*deduplicate=*/false);
+    Deduplication::Disabled);
 }
 
 /**
@@ -90,11 +90,11 @@ std::ostream& operator<<(std::ostream& os, const CircuitOutcome& outcome) {
                             return rb::make_singleton_ranking(
                                 CircuitOutcome{output, n_gate, o1_gate, o2_gate});
                         },
-                        /*deduplicate=*/false);
+                        Deduplication::Disabled);
                 },
-                /*deduplicate=*/false);
+                Deduplication::Disabled);
         },
-        /*deduplicate=*/false);
+        Deduplication::Disabled);
 }
 
 /**
@@ -114,7 +114,7 @@ int main() {
         [observed_output](const CircuitOutcome& outcome) {
             return outcome.output == observed_output;
         },
-        /*deduplicate=*/false);
+        Deduplication::Disabled);
 
     const auto explanations = rb::take_n(posterior, 6);
 

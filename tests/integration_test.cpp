@@ -19,6 +19,7 @@
 
 namespace {
 
+using ranked_belief::Deduplication;
 using ranked_belief::Rank;
 using ranked_belief::RankingElement;
 using ranked_belief::RankingFunction;
@@ -43,8 +44,8 @@ struct MontyHallScenario {
 TEST(IntegrationTest, MontyHallSwitchingMorePlausibleThanStaying) {
     const auto& doors = all_doors();
 
-    auto prize_distribution = ranked_belief::from_values_uniform(doors, Rank::zero(), false);
-    auto initial_pick_distribution = ranked_belief::from_values_uniform(doors, Rank::zero(), false);
+    auto prize_distribution = ranked_belief::from_values_uniform(doors, Rank::zero(), Deduplication::Disabled);
+    auto initial_pick_distribution = ranked_belief::from_values_uniform(doors, Rank::zero(), Deduplication::Disabled);
 
     struct WorldState {
         int prize;
@@ -59,9 +60,9 @@ TEST(IntegrationTest, MontyHallSwitchingMorePlausibleThanStaying) {
                 [prize](int pick) {
                     return ranked_belief::make_singleton_ranking(WorldState{prize, pick});
                 },
-                false);
+                Deduplication::Disabled);
         },
-        false);
+        Deduplication::Disabled);
 
     auto plays = ranked_belief::merge_apply(
         world_states,
@@ -81,14 +82,14 @@ TEST(IntegrationTest, MontyHallSwitchingMorePlausibleThanStaying) {
                 scored_scenarios.emplace_back(MontyHallScenario{world.prize, world.pick, host}, host_rank);
             }
 
-            return ranked_belief::from_list(scored_scenarios, false);
+            return ranked_belief::from_list(scored_scenarios, Deduplication::Disabled);
         },
-        false);
+        Deduplication::Disabled);
 
     auto observed = ranked_belief::observe(
         plays,
         [](const MontyHallScenario& scenario) { return scenario.host == 1; },
-        false);
+        Deduplication::Disabled);
 
     auto stay_evaluations = std::make_shared<int>(0);
     auto stay_results = ranked_belief::map(
@@ -97,7 +98,7 @@ TEST(IntegrationTest, MontyHallSwitchingMorePlausibleThanStaying) {
             ++(*stay_evaluations);
             return scenario.pick == scenario.prize;
         },
-        false);
+        Deduplication::Disabled);
 
     auto switch_evaluations = std::make_shared<int>(0);
     auto switch_results = ranked_belief::map(
@@ -113,7 +114,7 @@ TEST(IntegrationTest, MontyHallSwitchingMorePlausibleThanStaying) {
             }
             return alternative == scenario.prize;
         },
-        false);
+        Deduplication::Disabled);
 
     EXPECT_EQ(*stay_evaluations, 0);
     EXPECT_EQ(*switch_evaluations, 0);
@@ -186,7 +187,7 @@ TEST(IntegrationTest, DiceSumDistributionMatchesCombinatorics) {
         return std::make_shared<Element>(std::move(value_promise), Rank::zero(), std::move(next_promise));
     };
 
-    auto die = RankingFunction<int>((*builder)(1), false);
+    auto die = RankingFunction<int>((*builder)(1), Deduplication::Disabled);
 
     EXPECT_EQ(*value_forces, 0);
     EXPECT_EQ(*next_forces, 0);
@@ -197,9 +198,9 @@ TEST(IntegrationTest, DiceSumDistributionMatchesCombinatorics) {
             return ranked_belief::map(
                 die,
                 [first](int second) { return first + second; },
-                false);
+                Deduplication::Disabled);
         },
-        false);
+        Deduplication::Disabled);
 
     const auto samples = ranked_belief::take_n(sum_distribution, 36);
     ASSERT_EQ(samples.size(), 36);
@@ -248,7 +249,7 @@ TEST(IntegrationTest, FibonacciSequenceRespectsLazyGeneration) {
             return std::make_pair(static_cast<int>(cache->at(index)), Rank::from_value(index));
         },
         0,
-        false);
+        Deduplication::Disabled);
 
     EXPECT_EQ(*generator_calls, 1);
 

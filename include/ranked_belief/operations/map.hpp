@@ -63,7 +63,7 @@ requires std::invocable<F, const T&>
 [[nodiscard]] auto map(
     const RankingFunction<T>& rf,
     F func,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
     -> RankingFunction<std::invoke_result_t<F, const T&>>
 {
     using R = std::invoke_result_t<F, const T&>;
@@ -149,7 +149,7 @@ requires std::invocable<F, const T&, Rank>
 [[nodiscard]] auto map_with_rank(
     const RankingFunction<T>& rf,
     F func,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
     -> RankingFunction<typename std::invoke_result_t<F, const T&, Rank>::first_type>
 {
     using PairType = std::invoke_result_t<F, const T&, Rank>;
@@ -250,7 +250,7 @@ requires std::invocable<F, const T&, size_t>
 [[nodiscard]] auto map_with_index(
     const RankingFunction<T>& rf,
     F func,
-    bool deduplicate = true)
+    Deduplication deduplicate = Deduplication::Enabled)
     -> RankingFunction<std::invoke_result_t<F, const T&, size_t>>
 {
     using R = std::invoke_result_t<F, const T&, size_t>;

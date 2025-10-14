@@ -231,7 +231,7 @@ TEST_F(FilterTest, FilterStringsWithPredicate) {
 TEST_F(FilterTest, FilterWithDeduplication) {
     std::vector<int> values = {1, 2, 2, 3, 3, 3, 4};
     auto rf = from_values_uniform(values);
-    auto evens = filter(rf, [](int x) { return x % 2 == 0; }, true);
+    auto evens = filter(rf, [](int x) { return x % 2 == 0; }, Deduplication::Enabled);
     
     auto result = collect_values(evens);
     std::vector<int> expected = {2, 4};
@@ -241,7 +241,7 @@ TEST_F(FilterTest, FilterWithDeduplication) {
 TEST_F(FilterTest, FilterWithoutDeduplication) {
     std::vector<int> values = {1, 2, 2, 3, 4, 4, 4};
     auto rf = from_values_uniform(values);
-    auto evens = filter(rf, [](int x) { return x % 2 == 0; }, false);
+    auto evens = filter(rf, [](int x) { return x % 2 == 0; }, Deduplication::Disabled);
     
     auto result = collect_values(evens);
     std::vector<int> expected = {2, 2, 4, 4, 4};

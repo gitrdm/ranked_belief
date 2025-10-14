@@ -27,7 +27,7 @@ TEST(TypeErasureTest, WrapsConcreteRanking)
 
 TEST(TypeErasureTest, MapProducesAnyValues)
 {
-	auto rf = from_values_sequential<int>({1, 2, 3}, Rank::zero(), true);
+	auto rf = from_values_sequential<int>({1, 2, 3}, Rank::zero(), Deduplication::Enabled);
 	RankingFunctionAny erased{rf};
 
 	auto mapped = erased.map([](const std::any& value) {
@@ -43,7 +43,7 @@ TEST(TypeErasureTest, MapProducesAnyValues)
 
 TEST(TypeErasureTest, FilterMaintainsUnderlyingType)
 {
-	auto rf = from_values_sequential<int>({1, 2, 3, 4}, Rank::zero(), true);
+	auto rf = from_values_sequential<int>({1, 2, 3, 4}, Rank::zero(), Deduplication::Enabled);
 	RankingFunctionAny erased{rf};
 
 	auto evens = erased.filter([](const std::any& value) {
@@ -63,7 +63,7 @@ TEST(TypeErasureTest, FilterMaintainsUnderlyingType)
 
 TEST(TypeErasureTest, ObserveValuePreservesLazySemantics)
 {
-	auto rf = from_values_sequential<int>({5, 6, 7}, Rank::zero(), true);
+	auto rf = from_values_sequential<int>({5, 6, 7}, Rank::zero(), Deduplication::Enabled);
 	RankingFunctionAny erased{rf};
 
 	auto conditioned = erased.observe_value(std::any{6});
@@ -76,12 +76,12 @@ TEST(TypeErasureTest, ObserveValuePreservesLazySemantics)
 
 TEST(TypeErasureTest, MergeDifferentTypesFallsBackToAny)
 {
-	RankingFunctionAny ints{from_values_sequential<int>({1, 3}, Rank::zero(), true)};
+	RankingFunctionAny ints{from_values_sequential<int>({1, 3}, Rank::zero(), Deduplication::Enabled)};
 	RankingFunctionAny strings{from_list<std::string>({
 		{"two", Rank::from_value(1)}
 	})};
 
-	auto merged = ints.merge(strings, false);
+	auto merged = ints.merge(strings, Deduplication::Disabled);
 
 	auto first_value = merged.first_value();
 	ASSERT_EQ(first_value.type(), typeid(int));
@@ -124,7 +124,7 @@ TEST(TypeErasureTest, MergeDifferentTypesFallsBackToAny)
 
 TEST(TypeErasureTest, MergeApplyWithFunctionRanking)
 {
-	RankingFunctionAny values{from_values_sequential<int>({1, 2}, Rank::zero(), true)};
+	RankingFunctionAny values{from_values_sequential<int>({1, 2}, Rank::zero(), Deduplication::Enabled)};
 
 	using AnyFn = std::function<RankingFunctionAny(const std::any&)>;
 	auto function_rf = from_list<AnyFn>({
@@ -133,7 +133,7 @@ TEST(TypeErasureTest, MergeApplyWithFunctionRanking)
 			auto rf = from_list<int>({{v * 10, Rank::zero()}});
 			return RankingFunctionAny{rf};
 		}}, Rank::zero()}
-	}, false);
+	}, Deduplication::Disabled);
 
 	RankingFunctionAny functions{function_rf};
 
@@ -155,7 +155,7 @@ TEST(TypeErasureTest, LazyOperationsDeferEvaluation)
 			return std::pair{static_cast<int>(index), Rank::from_value(index)};
 		},
 		0,
-		true);
+		Deduplication::Enabled);
 
 	RankingFunctionAny erased{generator};
 	EXPECT_EQ(forced, 1u);

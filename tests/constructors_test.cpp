@@ -100,7 +100,7 @@ TEST_F(ConstructorsTest, FromListWithDeduplication) {
         {1, Rank::zero()},
         {1, Rank::from_value(1)},
         {2, Rank::from_value(2)}
-    }, true);
+    }, Deduplication::Enabled);
     
     EXPECT_EQ(rf.size(), 2);  // 1 and 2 after dedup
 }
@@ -110,7 +110,7 @@ TEST_F(ConstructorsTest, FromListWithoutDeduplication) {
         {1, Rank::zero()},
         {1, Rank::from_value(1)},
         {2, Rank::from_value(2)}
-    }, false);
+    }, Deduplication::Disabled);
     
     EXPECT_EQ(rf.size(), 3);  // All kept
 }
@@ -526,8 +526,8 @@ TEST_F(ConstructorsTest, MixedConstructionMethods) {
 TEST_F(ConstructorsTest, DeduplicationConsistency) {
     std::vector<int> values = {1, 1, 2, 2, 3};
     
-    auto rf_dedup = from_values_uniform(values, Rank::zero(), true);
-    auto rf_no_dedup = from_values_uniform(values, Rank::zero(), false);
+    auto rf_dedup = from_values_uniform(values, Rank::zero(), Deduplication::Enabled);
+    auto rf_no_dedup = from_values_uniform(values, Rank::zero(), Deduplication::Disabled);
     
     EXPECT_EQ(rf_dedup.size(), 3);    // 1, 2, 3 after dedup
     EXPECT_EQ(rf_no_dedup.size(), 5); // All kept

@@ -52,8 +52,8 @@ template<typename L, typename R, typename Op>
     using Result = std::invoke_result_t<Op, const LValue&, const RValue&>;
 
     auto rhs_copy = rhs_rf;
-    const bool rhs_dedup = rhs_rf.is_deduplicating();
-    const bool result_dedup = lhs_rf.is_deduplicating() && rhs_rf.is_deduplicating();
+    const auto rhs_dedup = from_bool(rhs_rf.is_deduplicating());
+    const auto result_dedup = from_bool(lhs_rf.is_deduplicating() && rhs_rf.is_deduplicating());
 
     auto apply_to_rhs = [rhs_copy, op, rhs_dedup](const LValue& lhs_value) {
         return map(

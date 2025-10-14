@@ -56,7 +56,7 @@ TEST_F(RankingFunctionTest, DefaultConstructorCreatesEmpty) {
 }
 
 TEST_F(RankingFunctionTest, ConstructFromNullptrCreatesEmpty) {
-    RankingFunction<int> rf(nullptr, true);
+    RankingFunction<int> rf(nullptr, Deduplication::Enabled);
     
     EXPECT_TRUE(rf.is_empty());
     EXPECT_EQ(rf.head(), nullptr);
@@ -73,10 +73,10 @@ TEST_F(RankingFunctionTest, ConstructFromHeadElement) {
 TEST_F(RankingFunctionTest, ConstructorPreservesDeduplicationFlag) {
     auto head = create_simple_sequence();
     
-    RankingFunction<int> rf_dedup(head, true);
+    RankingFunction<int> rf_dedup(head, Deduplication::Enabled);
     EXPECT_TRUE(rf_dedup.is_deduplicating());
     
-    RankingFunction<int> rf_no_dedup(head, false);
+    RankingFunction<int> rf_no_dedup(head, Deduplication::Disabled);
     EXPECT_FALSE(rf_no_dedup.is_deduplicating());
 }
 
@@ -148,7 +148,7 @@ TEST_F(RankingFunctionTest, MultipleBeginCallsReturnIndependentIterators) {
 
 TEST_F(RankingFunctionTest, RangeBasedForLoopIteration) {
     auto head = create_simple_sequence();
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     std::vector<int> values;
     for (auto [value, rank] : rf) {
@@ -160,7 +160,7 @@ TEST_F(RankingFunctionTest, RangeBasedForLoopIteration) {
 
 TEST_F(RankingFunctionTest, RangeBasedForLoopWithDeduplication) {
     auto head = create_duplicate_sequence();
-    RankingFunction<int> rf(head, true);
+    RankingFunction<int> rf(head, Deduplication::Enabled);
     
     std::vector<int> values;
     for (auto [value, rank] : rf) {
@@ -172,7 +172,7 @@ TEST_F(RankingFunctionTest, RangeBasedForLoopWithDeduplication) {
 
 TEST_F(RankingFunctionTest, RangeBasedForLoopWithoutDeduplication) {
     auto head = create_duplicate_sequence();
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     std::vector<int> values;
     for (auto [value, rank] : rf) {
@@ -233,7 +233,7 @@ TEST_F(RankingFunctionTest, SizeOfSingletonIsOne) {
 
 TEST_F(RankingFunctionTest, SizeCountsAllElements) {
     auto head = create_simple_sequence();
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     EXPECT_EQ(rf.size(), 3);
 }
@@ -241,10 +241,10 @@ TEST_F(RankingFunctionTest, SizeCountsAllElements) {
 TEST_F(RankingFunctionTest, SizeRespectsDeduplication) {
     auto head = create_duplicate_sequence();
     
-    RankingFunction<int> rf_dedup(head, true);
+    RankingFunction<int> rf_dedup(head, Deduplication::Enabled);
     EXPECT_EQ(rf_dedup.size(), 2);  // [1, 2] after dedup
     
-    RankingFunction<int> rf_no_dedup(head, false);
+    RankingFunction<int> rf_no_dedup(head, Deduplication::Disabled);
     EXPECT_EQ(rf_no_dedup.size(), 3);  // [1, 1, 2] without dedup
 }
 
@@ -274,8 +274,8 @@ TEST_F(RankingFunctionTest, InequalityWithDifferentHeads) {
 
 TEST_F(RankingFunctionTest, InequalityWithDifferentDeduplicationFlags) {
     auto head = create_simple_sequence();
-    RankingFunction<int> rf1(head, true);
-    RankingFunction<int> rf2(head, false);
+    RankingFunction<int> rf1(head, Deduplication::Enabled);
+    RankingFunction<int> rf2(head, Deduplication::Disabled);
     
     EXPECT_FALSE(rf1 == rf2);
     EXPECT_TRUE(rf1 != rf2);
@@ -333,7 +333,7 @@ TEST_F(RankingFunctionTest, RankingFunctionOfPairs) {
 
 TEST_F(RankingFunctionTest, WorksWithStdRangesDistance) {
     auto head = create_simple_sequence();
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     auto dist = std::ranges::distance(rf);
     EXPECT_EQ(dist, 3);
@@ -341,7 +341,7 @@ TEST_F(RankingFunctionTest, WorksWithStdRangesDistance) {
 
 TEST_F(RankingFunctionTest, WorksWithStdRangesFind) {
     auto head = create_simple_sequence();
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     auto it = std::ranges::find_if(rf, [](const auto& pair) {
         return pair.first == 2;
@@ -353,7 +353,7 @@ TEST_F(RankingFunctionTest, WorksWithStdRangesFind) {
 
 TEST_F(RankingFunctionTest, WorksWithStdRangesTransform) {
     auto head = create_simple_sequence();
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     std::vector<int> values;
     std::ranges::transform(rf, std::back_inserter(values),
@@ -364,7 +364,7 @@ TEST_F(RankingFunctionTest, WorksWithStdRangesTransform) {
 
 TEST_F(RankingFunctionTest, WorksWithStdRangesCount) {
     auto head = create_duplicate_sequence();
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     auto count = std::ranges::count_if(rf, [](const auto& pair) {
         return pair.first == 1;
@@ -375,7 +375,7 @@ TEST_F(RankingFunctionTest, WorksWithStdRangesCount) {
 
 TEST_F(RankingFunctionTest, WorksWithStdRangesAnyOf) {
     auto head = create_simple_sequence();
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     bool has_two = std::ranges::any_of(rf, [](const auto& pair) {
         return pair.first == 2;
@@ -412,7 +412,7 @@ TEST_F(RankingFunctionTest, LongSequenceSize) {
     };
     
     auto head = make_seq(50);
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     EXPECT_EQ(rf.size(), 50);
 }
@@ -451,7 +451,7 @@ TEST_F(RankingFunctionTest, HeadAccessorReturnsCorrectPointer) {
 
 TEST_F(RankingFunctionTest, ConstRankingFunctionIteration) {
     auto head = create_simple_sequence();
-    const RankingFunction<int> rf(head, false);
+    const RankingFunction<int> rf(head, Deduplication::Disabled);
     
     std::vector<int> values;
     for (auto [value, rank] : rf) {
@@ -491,7 +491,7 @@ TEST_F(RankingFunctionTest, AllDuplicatesWithDeduplication) {
         });
     });
     
-    RankingFunction<int> rf(head, true);
+    RankingFunction<int> rf(head, Deduplication::Enabled);
     
     EXPECT_EQ(rf.size(), 1);
     auto first = rf.first();
@@ -506,7 +506,7 @@ TEST_F(RankingFunctionTest, ZeroRankElements) {
         });
     });
     
-    RankingFunction<int> rf(head, false);
+    RankingFunction<int> rf(head, Deduplication::Disabled);
     
     for (auto [value, rank] : rf) {
         EXPECT_EQ(rank, Rank::zero());

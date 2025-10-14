@@ -68,14 +68,14 @@ TEST_F(RankingIteratorTest, DefaultConstructorCreatesEndSentinel) {
 }
 
 TEST_F(RankingIteratorTest, ConstructWithNullptrCreatesEndSentinel) {
-    RankingIterator<int> it(nullptr, false);
+    RankingIterator<int> it(nullptr, Deduplication::Disabled);
     EXPECT_TRUE(it.is_end());
     EXPECT_EQ(it.current(), nullptr);
 }
 
 TEST_F(RankingIteratorTest, ConstructWithElementCreatesValidIterator) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     
     EXPECT_FALSE(it.is_end());
     EXPECT_EQ(it.current(), seq);
@@ -84,10 +84,10 @@ TEST_F(RankingIteratorTest, ConstructWithElementCreatesValidIterator) {
 TEST_F(RankingIteratorTest, ConstructorPreservesDeduplicationFlag) {
     auto seq = create_simple_sequence();
     
-    RankingIterator<int> it_dedup(seq, true);
+    RankingIterator<int> it_dedup(seq, Deduplication::Enabled);
     EXPECT_TRUE(it_dedup.is_deduplicating());
     
-    RankingIterator<int> it_no_dedup(seq, false);
+    RankingIterator<int> it_no_dedup(seq, Deduplication::Disabled);
     EXPECT_FALSE(it_no_dedup.is_deduplicating());
 }
 
@@ -97,7 +97,7 @@ TEST_F(RankingIteratorTest, ConstructorPreservesDeduplicationFlag) {
 
 TEST_F(RankingIteratorTest, DereferenceReturnsValueRankPair) {
     auto seq = make_terminal(42, Rank::from_value(7));
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     
     auto [value, rank] = *it;
     EXPECT_EQ(value, 42);
@@ -106,7 +106,7 @@ TEST_F(RankingIteratorTest, DereferenceReturnsValueRankPair) {
 
 TEST_F(RankingIteratorTest, DereferenceWithZeroRank) {
     auto seq = make_terminal(100, Rank::zero());
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     
     auto [value, rank] = *it;
     EXPECT_EQ(value, 100);
@@ -115,7 +115,7 @@ TEST_F(RankingIteratorTest, DereferenceWithZeroRank) {
 
 TEST_F(RankingIteratorTest, DereferenceWithString) {
     auto seq = make_terminal(std::string("hello"), Rank::from_value(3));
-    RankingIterator<std::string> it(seq, false);
+    RankingIterator<std::string> it(seq, Deduplication::Disabled);
     
     auto [value, rank] = *it;
     EXPECT_EQ(value, "hello");
@@ -128,7 +128,7 @@ TEST_F(RankingIteratorTest, DereferenceWithString) {
 
 TEST_F(RankingIteratorTest, PreIncrementAdvancesToNext) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     
     EXPECT_EQ((*it).first, 1);
     ++it;
@@ -139,7 +139,7 @@ TEST_F(RankingIteratorTest, PreIncrementAdvancesToNext) {
 
 TEST_F(RankingIteratorTest, PreIncrementReturnsReference) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     
     auto& result = ++it;
     EXPECT_EQ(&result, &it);  // Same object
@@ -147,7 +147,7 @@ TEST_F(RankingIteratorTest, PreIncrementReturnsReference) {
 
 TEST_F(RankingIteratorTest, PostIncrementAdvancesToNext) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     
     EXPECT_EQ((*it).first, 1);
     it++;
@@ -158,7 +158,7 @@ TEST_F(RankingIteratorTest, PostIncrementAdvancesToNext) {
 
 TEST_F(RankingIteratorTest, PostIncrementReturnsPreviousIterator) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     
     auto prev = it++;
     EXPECT_EQ((*prev).first, 1);
@@ -167,7 +167,7 @@ TEST_F(RankingIteratorTest, PostIncrementReturnsPreviousIterator) {
 
 TEST_F(RankingIteratorTest, IncrementPastEndReachesNull) {
     auto seq = make_terminal(1, Rank::zero());
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     
     EXPECT_FALSE(it.is_end());
     ++it;
@@ -180,8 +180,8 @@ TEST_F(RankingIteratorTest, IncrementPastEndReachesNull) {
 
 TEST_F(RankingIteratorTest, EqualityComparison) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it1(seq, false);
-    RankingIterator<int> it2(seq, false);
+    RankingIterator<int> it1(seq, Deduplication::Disabled);
+    RankingIterator<int> it2(seq, Deduplication::Disabled);
     
     EXPECT_TRUE(it1 == it2);
     EXPECT_FALSE(it1 != it2);
@@ -189,8 +189,8 @@ TEST_F(RankingIteratorTest, EqualityComparison) {
 
 TEST_F(RankingIteratorTest, InequalityAfterIncrement) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it1(seq, false);
-    RankingIterator<int> it2(seq, false);
+    RankingIterator<int> it1(seq, Deduplication::Disabled);
+    RankingIterator<int> it2(seq, Deduplication::Disabled);
     
     ++it1;
     EXPECT_FALSE(it1 == it2);
@@ -207,7 +207,7 @@ TEST_F(RankingIteratorTest, EndSentinelComparison) {
 
 TEST_F(RankingIteratorTest, IteratorNotEqualToEnd) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     RankingIterator<int> end;
     
     EXPECT_FALSE(it == end);
@@ -220,7 +220,7 @@ TEST_F(RankingIteratorTest, IteratorNotEqualToEnd) {
 
 TEST_F(RankingIteratorTest, IterateOverFiniteSequence) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     RankingIterator<int> end;
     
     std::vector<int> values;
@@ -233,7 +233,7 @@ TEST_F(RankingIteratorTest, IterateOverFiniteSequence) {
 
 TEST_F(RankingIteratorTest, IterateWithRanksPreserved) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     RankingIterator<int> end;
     
     std::vector<std::pair<int, uint64_t>> pairs;
@@ -250,7 +250,7 @@ TEST_F(RankingIteratorTest, IterateWithRanksPreserved) {
 
 TEST_F(RankingIteratorTest, SingleElementIteration) {
     auto seq = make_terminal(99, Rank::from_value(5));
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     RankingIterator<int> end;
     
     std::vector<int> values;
@@ -279,7 +279,7 @@ TEST_F(RankingIteratorTest, EmptySequenceIteration) {
 
 TEST_F(RankingIteratorTest, DeduplicationRemovesDuplicates) {
     auto seq = create_duplicate_sequence();
-    RankingIterator<int> it(seq, true);  // With deduplication
+    RankingIterator<int> it(seq, Deduplication::Enabled);  // With deduplication
     RankingIterator<int> end;
     
     std::vector<int> values;
@@ -292,7 +292,7 @@ TEST_F(RankingIteratorTest, DeduplicationRemovesDuplicates) {
 
 TEST_F(RankingIteratorTest, NoDeduplicationKeepsAllElements) {
     auto seq = create_duplicate_sequence();
-    RankingIterator<int> it(seq, false);  // Without deduplication
+    RankingIterator<int> it(seq, Deduplication::Disabled);  // Without deduplication
     RankingIterator<int> end;
     
     std::vector<int> values;
@@ -305,7 +305,7 @@ TEST_F(RankingIteratorTest, NoDeduplicationKeepsAllElements) {
 
 TEST_F(RankingIteratorTest, DeduplicationKeepsFirstRank) {
     auto seq = create_duplicate_sequence();  // [1@0, 1@1, 2@2, 2@3, 3@4]
-    RankingIterator<int> it(seq, true);
+    RankingIterator<int> it(seq, Deduplication::Enabled);
     RankingIterator<int> end;
     
     std::vector<std::pair<int, uint64_t>> pairs;
@@ -323,7 +323,7 @@ TEST_F(RankingIteratorTest, DeduplicationKeepsFirstRank) {
 
 TEST_F(RankingIteratorTest, AllDuplicatesYieldsSingleElement) {
     auto seq = create_all_duplicates();  // [5@0, 5@1, 5@2]
-    RankingIterator<int> it(seq, true);
+    RankingIterator<int> it(seq, Deduplication::Enabled);
     RankingIterator<int> end;
     
     std::vector<int> values;
@@ -342,7 +342,7 @@ TEST_F(RankingIteratorTest, DeduplicationOnConstructor) {
         });
     });
     
-    RankingIterator<int> it(seq, true);
+    RankingIterator<int> it(seq, Deduplication::Enabled);
     
     // Constructor should skip the first duplicate
     EXPECT_EQ((*it).first, 7);
@@ -360,7 +360,7 @@ TEST_F(RankingIteratorTest, IterateOverStrings) {
         });
     });
     
-    RankingIterator<std::string> it(seq, false);
+    RankingIterator<std::string> it(seq, Deduplication::Disabled);
     RankingIterator<std::string> end;
     
     std::vector<std::string> values;
@@ -378,7 +378,7 @@ TEST_F(RankingIteratorTest, DeduplicateStrings) {
         });
     });
     
-    RankingIterator<std::string> it(seq, true);
+    RankingIterator<std::string> it(seq, Deduplication::Enabled);
     RankingIterator<std::string> end;
     
     std::vector<std::string> values;
@@ -394,7 +394,7 @@ TEST_F(RankingIteratorTest, IterateOverVectors) {
         return make_terminal(std::vector<int>{3, 4}, Rank::from_value(1));
     });
     
-    RankingIterator<std::vector<int>> it(seq, false);
+    RankingIterator<std::vector<int>> it(seq, Deduplication::Disabled);
     RankingIterator<std::vector<int>> end;
     
     std::vector<std::vector<int>> values;
@@ -413,7 +413,7 @@ TEST_F(RankingIteratorTest, IterateOverVectors) {
 
 TEST_F(RankingIteratorTest, WorksWithStdRangesAlgorithms) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> begin(seq, false);
+    RankingIterator<int> begin(seq, Deduplication::Disabled);
     RankingIterator<int> end;
     
     // Count elements using std::ranges::distance
@@ -423,7 +423,7 @@ TEST_F(RankingIteratorTest, WorksWithStdRangesAlgorithms) {
 
 TEST_F(RankingIteratorTest, WorksWithStdRangesFind) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> begin(seq, false);
+    RankingIterator<int> begin(seq, Deduplication::Disabled);
     RankingIterator<int> end;
     
     // Find value 2 in sequence
@@ -437,7 +437,7 @@ TEST_F(RankingIteratorTest, WorksWithStdRangesFind) {
 
 TEST_F(RankingIteratorTest, WorksWithStdRangesTransform) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> begin(seq, false);
+    RankingIterator<int> begin(seq, Deduplication::Disabled);
     RankingIterator<int> end;
     
     // Extract just the values
@@ -454,7 +454,7 @@ TEST_F(RankingIteratorTest, WorksWithStdRangesTransform) {
 
 TEST_F(RankingIteratorTest, IteratorCopyIsIndependent) {
     auto seq = create_simple_sequence();
-    RankingIterator<int> it1(seq, false);
+    RankingIterator<int> it1(seq, Deduplication::Disabled);
     RankingIterator<int> it2 = it1;
     
     EXPECT_EQ(it1, it2);
@@ -476,7 +476,7 @@ TEST_F(RankingIteratorTest, LongSequenceIteration) {
     };
     
     auto seq = make_seq(100);
-    RankingIterator<int> it(seq, false);
+    RankingIterator<int> it(seq, Deduplication::Disabled);
     RankingIterator<int> end;
     
     int count = 0;
@@ -502,7 +502,7 @@ TEST_F(RankingIteratorTest, DeduplicationWithManyConsecutiveDuplicates) {
     };
     
     auto seq = make_seq(100, 2);
-    RankingIterator<int> it(seq, true);
+    RankingIterator<int> it(seq, Deduplication::Enabled);
     RankingIterator<int> end;
     
     std::vector<int> values;
@@ -523,7 +523,7 @@ TEST_F(RankingIteratorTest, MixedDeduplicationBehavior) {
         });
     });
     
-    RankingIterator<int> it(seq, true);
+    RankingIterator<int> it(seq, Deduplication::Enabled);
     RankingIterator<int> end;
     
     std::vector<int> values;

@@ -299,7 +299,7 @@ TEST_F(MergeApplyTest, MergeApplyWithoutDeduplication) {
     // Each produces same result: 5@0
     auto result = merge_apply(rf, [](int) {
         return singleton(5);
-    }, false);  // No deduplication
+    }, Deduplication::Disabled);  // No deduplication
     
     auto values = collect_values(result);
     // Without deduplication, should get 5 twice

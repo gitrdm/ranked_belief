@@ -12,16 +12,16 @@ TEST(NormalExceptionalRegression, ExceptionalEarlierIsHead)
         {100, Rank::from_value(17)},
         {101, Rank::from_value(18)}
     };
-    auto normal = from_list<int>(normal_pairs, true);
+    auto normal = from_list<int>(normal_pairs, Deduplication::Enabled);
 
     // Exceptional ranking (before shift): single value 42@1
     auto exceptional_thunk = []() {
         std::vector<int> vals = {42};
-        return from_values_uniform<int>(vals, Rank::from_value(1), false);
+        return from_values_uniform<int>(vals, Rank::from_value(1), Deduplication::Disabled);
     };
 
     // Shift exceptional by 2 -> exceptional element becomes rank 3
-    auto combined = normal_exceptional(normal, exceptional_thunk, Rank::from_value(2), true);
+    auto combined = normal_exceptional(normal, exceptional_thunk, Rank::from_value(2), Deduplication::Enabled);
 
     auto first = combined.first();
     ASSERT_TRUE(first.has_value());
