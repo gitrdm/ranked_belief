@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
-from typing import Iterable, List, Sequence, Tuple
+from collections.abc import Iterable, Sequence
 
 from .. import Rank, RankingFunctionAny
 from ..dsl import either_of, merge_apply, normal_exceptional, observe, take_n
 
 __all__ = ["hmm", "path_likelihoods"]
 
-Coordinate = Tuple[int, int]
-Path = Tuple[Tuple[Coordinate, Coordinate | None], ...]
+Coordinate = tuple[int, int]
+Path = tuple[tuple[Coordinate, Coordinate | None], ...]
 
 
-def _neighbour_positions(position: Coordinate) -> Tuple[Coordinate, ...]:
+def _neighbour_positions(position: Coordinate) -> tuple[Coordinate, ...]:
     x, y = position
     return ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1))
 
 
-def _surrounding_positions(position: Coordinate) -> Tuple[Coordinate, ...]:
+def _surrounding_positions(position: Coordinate) -> tuple[Coordinate, ...]:
     x, y = position
     return (
         (x - 1, y - 1),
@@ -78,5 +78,5 @@ def hmm(observations: Sequence[Coordinate]) -> RankingFunctionAny:
 
 def path_likelihoods(
     observations: Iterable[Coordinate], *, limit: int = 5
-) -> List[Tuple[Path, Rank]]:
+) -> list[tuple[Path, Rank]]:
     return take_n(hmm(tuple(observations)), limit)

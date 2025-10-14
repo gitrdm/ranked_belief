@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from functools import lru_cache
-from typing import Iterable, List, Sequence, Tuple
 
 from .. import Rank, RankingFunctionAny
 from ..dsl import either_or, merge_apply, normal_exceptional, observe, take_n
@@ -12,7 +12,7 @@ __all__ = ["hmm", "sequence_likelihoods"]
 
 State = str
 Observation = str
-Path = Tuple[Tuple[State, Observation | None], ...]
+Path = tuple[tuple[State, Observation | None], ...]
 
 
 @lru_cache(maxsize=None)
@@ -72,7 +72,7 @@ def hmm(observations: Sequence[Observation]) -> RankingFunctionAny:
     return ranking.map(lambda path: tuple(path[1:]))
 
 
-def sequence_likelihoods(observations: Iterable[Observation], *, limit: int = 5) -> List[Tuple[Path, Rank]]:
+def sequence_likelihoods(observations: Iterable[Observation], *, limit: int = 5) -> list[tuple[Path, Rank]]:
     """Return the most plausible latent state sequences for ``observations``."""
 
     return take_n(hmm(tuple(observations)), limit)
