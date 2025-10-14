@@ -70,8 +70,9 @@ template<typename T>
         std::shared_ptr<RankingElement<T>>,
         Rank)>;
     auto build_merged = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_merged;
     
-    *build_merged = [build_merged](
+    *build_merged = [weak_build](
         std::shared_ptr<RankingElement<T>> elem1,
         std::shared_ptr<RankingElement<T>> elem2,
         Rank seen_rank)
@@ -81,14 +82,25 @@ template<typename T>
         if (!elem1) {
             return elem2;
         }
+
+        auto build_ref = weak_build.lock();
         
         // If first element's rank equals seen_rank, take it immediately and continue with same seen_rank
         // This handles continuing to consume elements from elem1 at the same rank
         if (elem1->rank() == seen_rank) {
-            auto compute_next = [build_merged, elem1, elem2, seen_rank]()
+            auto compute_next = [weak_build, build_ref, elem1, elem2, seen_rank]()
                 -> std::shared_ptr<RankingElement<T>>
             {
-                return (*build_merged)(elem1->next(), elem2, seen_rank);
+                auto next_elem1 = elem1->next();
+
+                if (auto locked = weak_build.lock()) {
+                    return (*locked)(next_elem1, elem2, seen_rank);
+                }
+
+                if (build_ref) {
+                    return (*build_ref)(next_elem1, elem2, seen_rank);
+                }
+                return nullptr;
             };
             
             return std::make_shared<RankingElement<T>>(
@@ -107,10 +119,19 @@ template<typename T>
         if (elem1->rank() <= elem2->rank()) {
             // Take element from first sequence and update seen_rank to its rank
             auto elem1_rank = elem1->rank();
-            auto compute_next = [build_merged, elem1, elem2, elem1_rank]()
+            auto compute_next = [weak_build, build_ref, elem1, elem2, elem1_rank]()
                 -> std::shared_ptr<RankingElement<T>>
             {
-                return (*build_merged)(elem1->next(), elem2, elem1_rank);
+                auto next_elem1 = elem1->next();
+
+                if (auto locked = weak_build.lock()) {
+                    return (*locked)(next_elem1, elem2, elem1_rank);
+                }
+
+                if (build_ref) {
+                    return (*build_ref)(next_elem1, elem2, elem1_rank);
+                }
+                return nullptr;
             };
             
             return std::make_shared<RankingElement<T>>(
@@ -121,10 +142,19 @@ template<typename T>
         } else {
             // Take element from second sequence and update seen_rank to its rank
             auto elem2_rank = elem2->rank();
-            auto compute_next = [build_merged, elem1, elem2, elem2_rank]()
+            auto compute_next = [weak_build, build_ref, elem1, elem2, elem2_rank]()
                 -> std::shared_ptr<RankingElement<T>>
             {
-                return (*build_merged)(elem1, elem2->next(), elem2_rank);
+                auto next_elem2 = elem2->next();
+
+                if (auto locked = weak_build.lock()) {
+                    return (*locked)(elem1, next_elem2, elem2_rank);
+                }
+
+                if (build_ref) {
+                    return (*build_ref)(elem1, next_elem2, elem2_rank);
+                }
+                return nullptr;
             };
             
             return std::make_shared<RankingElement<T>>(

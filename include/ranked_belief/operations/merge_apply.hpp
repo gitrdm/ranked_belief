@@ -84,8 +84,9 @@ template<typename T>
     using BuildFunc = std::function<std::shared_ptr<RankingElement<T>>(
         std::shared_ptr<RankingElement<T>>)>;
     auto build_shifted = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_shifted;
     
-    *build_shifted = [build_shifted, shift_amount](
+    *build_shifted = [weak_build, shift_amount](
         std::shared_ptr<RankingElement<T>> elem)
         -> std::shared_ptr<RankingElement<T>>
     {
@@ -95,14 +96,25 @@ template<typename T>
 
         Rank new_rank = elem->rank() + shift_amount;
 
+        auto build_ref = weak_build.lock();
+
         auto compute_value = [elem]() -> T {
             return elem->value();
         };
 
-        auto compute_next = [build_shifted, elem]()
+        auto compute_next = [weak_build, build_ref, elem]()
             -> std::shared_ptr<RankingElement<T>>
         {
-            return (*build_shifted)(elem->next());
+            auto next_elem = elem->next();
+
+            if (auto locked = weak_build.lock()) {
+                return (*locked)(next_elem);
+            }
+
+            if (build_ref) {
+                return (*build_ref)(next_elem);
+            }
+            return nullptr;
         };
 
         return std::make_shared<RankingElement<T>>(
@@ -178,16 +190,19 @@ template<typename T, typename Func>
     using BuildFunc = std::function<std::shared_ptr<RankingElement<U>>(
         std::shared_ptr<RankingElement<T>>)>;
     auto build_merge_apply = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_merge_apply;
     
-    *build_merge_apply = [build_merge_apply, func](
+    *build_merge_apply = [weak_build, func](
         std::shared_ptr<RankingElement<T>> elem)
         -> std::shared_ptr<RankingElement<U>>
     {
         if (!elem) {
             return nullptr;
         }
+
+    auto build_ref = weak_build.lock();
         
-        // Get current element's rank and value
+    // Get current element's rank and value
         Rank current_rank = elem->rank();
         T current_value = elem->value();
         
@@ -207,8 +222,15 @@ template<typename T, typename Func>
         detail::ElementPromisePtr<U> rest_promise;
         if (next_input) {
             rest_promise = std::make_shared<Promise<std::shared_ptr<RankingElement<U>>>>(
-                make_promise([build_merge_apply, next_input]() -> std::shared_ptr<RankingElement<U>> {
-                    return (*build_merge_apply)(next_input);
+                make_promise([weak_build, build_ref, next_input]() -> std::shared_ptr<RankingElement<U>> {
+                    if (auto locked = weak_build.lock()) {
+                        return (*locked)(next_input);
+                    }
+
+                    if (build_ref) {
+                        return (*build_ref)(next_input);
+                    }
+                    return nullptr;
                 })
             );
         }

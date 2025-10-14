@@ -1,5 +1,6 @@
 # Build directories
 build/
+build-sanitizers/
 cmake-build-*/
 out/
 
@@ -38,6 +39,7 @@ dist/
 # Testing
 Testing/
 CTestTestfile.cmake
+fuzz/
 
 # CMake
 CMakeCache.txt

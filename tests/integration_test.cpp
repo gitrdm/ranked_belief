@@ -29,7 +29,7 @@ struct MontyHallScenario {
     int pick;
     int host;
 
-    friend bool operator==(const MontyHallScenario&, const MontyHallScenario&) = default;
+    [[maybe_unused]] friend bool operator==(const MontyHallScenario&, const MontyHallScenario&) = default;
 };
 
 /// Helper to materialise door labels once.
@@ -163,7 +163,8 @@ TEST(IntegrationTest, DiceSumDistributionMatchesCombinatorics) {
     using Builder = std::function<std::shared_ptr<Element>(int)>;
 
     auto builder = std::make_shared<Builder>();
-    *builder = [builder, value_forces, next_forces](int face) -> std::shared_ptr<Element> {
+    std::weak_ptr<Builder> weak_builder = builder;
+    *builder = [weak_builder, value_forces, next_forces](int face) -> std::shared_ptr<Element> {
         if (face > 6) {
             return nullptr;
         }
@@ -173,9 +174,12 @@ TEST(IntegrationTest, DiceSumDistributionMatchesCombinatorics) {
             return face;
         });
 
-        auto compute_next = [builder, next_forces, face]() -> std::shared_ptr<Element> {
+        auto compute_next = [weak_builder, next_forces, face]() -> std::shared_ptr<Element> {
             ++(*next_forces);
-            return (*builder)(face + 1);
+            if (auto locked = weak_builder.lock()) {
+                return (*locked)(face + 1);
+            }
+            return nullptr;
         };
 
         auto next_promise = ranked_belief::make_promise(std::move(compute_next));

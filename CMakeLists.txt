@@ -47,6 +47,21 @@ option(RANKED_BELIEF_BUILD_TESTS "Build tests" ON)
 option(RANKED_BELIEF_BUILD_EXAMPLES "Build examples" ON)
 option(RANKED_BELIEF_BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
 option(RANKED_BELIEF_BUILD_R_BINDINGS "Build R bindings" OFF)
+option(RANKED_BELIEF_ENABLE_SANITIZERS "Build with Address/Undefined sanitizers for diagnostics" OFF)
+option(RANKED_BELIEF_BUILD_FUZZERS "Build libFuzzer-based fuzz targets" OFF)
+
+if(RANKED_BELIEF_ENABLE_SANITIZERS)
+    if(MSVC)
+        message(FATAL_ERROR "Address/Undefined sanitizers are not supported with MSVC")
+    endif()
+
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined)
+
+    # Optimisation level recommended for sanitiser-driven diagnostics
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1")
+endif()
 
 # Header-only library
 add_library(ranked_belief INTERFACE)
@@ -70,6 +85,19 @@ target_include_directories(ranked_belief_c_api
         $<INSTALL_INTERFACE:include>
 )
 target_compile_features(ranked_belief_c_api PUBLIC cxx_std_20)
+
+# Testing infrastructure and sanitiser integration
+include(CTest)
+
+if(NOT MEMORYCHECK_COMMAND)
+    find_program(MEMORYCHECK_COMMAND valgrind)
+endif()
+
+if(MEMORYCHECK_COMMAND)
+    set(MEMORYCHECK_COMMAND_OPTIONS
+        "--leak-check=full --error-exitcode=1 --track-origins=yes"
+        CACHE STRING "Command line options passed to the memory checker")
+endif()
 
 # Google Test integration
 if(RANKED_BELIEF_BUILD_TESTS)
@@ -95,6 +123,14 @@ endif()
 # Python bindings
 if(RANKED_BELIEF_BUILD_PYTHON_BINDINGS)
     add_subdirectory(bindings/python)
+endif()
+
+# Fuzzers
+if(RANKED_BELIEF_BUILD_FUZZERS)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "libFuzzer support requires Clang/LLVM toolchain")
+    endif()
+    add_subdirectory(fuzz)
 endif()
 
 # Installation

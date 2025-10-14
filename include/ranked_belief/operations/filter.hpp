@@ -67,22 +67,34 @@ requires std::invocable<Pred, const T&> &&
     using BuildFunc = std::function<std::shared_ptr<RankingElement<T>>(
         std::shared_ptr<RankingElement<T>>)>;
     auto build_filtered = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_filtered;
     
-    *build_filtered = [predicate, build_filtered](
+    *build_filtered = [predicate, weak_build](
         std::shared_ptr<RankingElement<T>> elem)
         -> std::shared_ptr<RankingElement<T>>
     {
         if (!elem) {
             return nullptr;
         }
+
+        auto build_ref = weak_build.lock();
         
         // Check if current element satisfies predicate (lazy evaluation)
         if (predicate(elem->value())) {
             // Keep this element - create lazy computation for next
-            auto compute_next = [build_filtered, elem]() 
+            auto compute_next = [weak_build, build_ref, elem]() 
                 -> std::shared_ptr<RankingElement<T>>
             {
-                return (*build_filtered)(elem->next());
+                auto next_elem = elem->next();
+
+                if (auto locked = weak_build.lock()) {
+                    return (*locked)(next_elem);
+                }
+
+                if (build_ref) {
+                    return (*build_ref)(next_elem);
+                }
+                return nullptr;
             };
             
             // Create new element with same value/rank, filtered next
@@ -93,7 +105,16 @@ requires std::invocable<Pred, const T&> &&
             );
         } else {
             // Skip this element - recursively try next
-            return (*build_filtered)(elem->next());
+            auto next_elem = elem->next();
+
+            if (auto locked = weak_build.lock()) {
+                return (*locked)(next_elem);
+            }
+
+            if (build_ref) {
+                return (*build_ref)(next_elem);
+            }
+            return nullptr;
         }
     };
     
@@ -146,8 +167,9 @@ template<typename T>
     using BuildFunc = std::function<std::shared_ptr<RankingElement<T>>(
         std::shared_ptr<RankingElement<T>>, std::size_t)>;
     auto build_taken = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_taken;
     
-    *build_taken = [build_taken](
+    *build_taken = [weak_build](
         std::shared_ptr<RankingElement<T>> elem,
         std::size_t remaining)
         -> std::shared_ptr<RankingElement<T>>
@@ -156,12 +178,23 @@ template<typename T>
         if (remaining == 0 || !elem) {
             return nullptr;
         }
+
+        auto build_ref = weak_build.lock();
         
         // Create lazy computation for next element (with decremented count)
-        auto compute_next = [build_taken, elem, remaining]() 
+        auto compute_next = [weak_build, build_ref, elem, remaining]() 
             -> std::shared_ptr<RankingElement<T>>
         {
-            return (*build_taken)(elem->next(), remaining - 1);
+            auto next_elem = elem->next();
+
+            if (auto locked = weak_build.lock()) {
+                return (*locked)(next_elem, remaining - 1);
+            }
+
+            if (build_ref) {
+                return (*build_ref)(next_elem, remaining - 1);
+            }
+            return nullptr;
         };
         
         // Create new element with same value/rank, limited next
@@ -216,8 +249,9 @@ template<typename T>
     using BuildFunc = std::function<std::shared_ptr<RankingElement<T>>(
         std::shared_ptr<RankingElement<T>>)>;
     auto build_filtered = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_filtered;
     
-    *build_filtered = [max_rank, build_filtered](
+    *build_filtered = [max_rank, weak_build](
         std::shared_ptr<RankingElement<T>> elem)
         -> std::shared_ptr<RankingElement<T>>
     {
@@ -225,12 +259,23 @@ template<typename T>
         if (!elem || elem->rank() > max_rank) {
             return nullptr;
         }
+
+        auto build_ref = weak_build.lock();
         
         // Keep this element - create lazy computation for next
-        auto compute_next = [build_filtered, elem]() 
+        auto compute_next = [weak_build, build_ref, elem]() 
             -> std::shared_ptr<RankingElement<T>>
         {
-            return (*build_filtered)(elem->next());
+            auto next_elem = elem->next();
+
+            if (auto locked = weak_build.lock()) {
+                return (*locked)(next_elem);
+            }
+
+            if (build_ref) {
+                return (*build_ref)(next_elem);
+            }
+            return nullptr;
         };
         
         // Create new element with same value/rank, filtered next

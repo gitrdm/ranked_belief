@@ -72,8 +72,9 @@ requires std::invocable<F, const T&>
     // Use shared_ptr to allow safe capture in lazy computations
     using BuildFunc = std::function<std::shared_ptr<RankingElement<R>>(std::shared_ptr<RankingElement<T>>)>;
     auto build_mapped = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_mapped;
     
-    *build_mapped = [func, build_mapped](std::shared_ptr<RankingElement<T>> elem)
+    *build_mapped = [func, weak_build](std::shared_ptr<RankingElement<T>> elem)
         -> std::shared_ptr<RankingElement<R>>
     {
         if (!elem) {
@@ -86,8 +87,15 @@ requires std::invocable<F, const T&>
         };
         
         // Create a lazy computation for the next element
-        auto compute_next = [build_mapped, elem]() -> std::shared_ptr<RankingElement<R>> {
-            return (*build_mapped)(elem->next());
+        auto build_ref = weak_build.lock();
+        auto compute_next = [weak_build, build_ref, elem]() -> std::shared_ptr<RankingElement<R>> {
+            if (auto locked = weak_build.lock()) {
+                return (*locked)(elem->next());
+            }
+            if (build_ref) {
+                return (*build_ref)(elem->next());
+            }
+            return nullptr;
         };
         
         // Build the mapped element with lazy value and next
@@ -151,8 +159,9 @@ requires std::invocable<F, const T&, Rank>
     // Use shared_ptr to allow safe capture in lazy computations
     using BuildFunc = std::function<std::shared_ptr<RankingElement<R>>(std::shared_ptr<RankingElement<T>>)>;
     auto build_mapped = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_mapped;
     
-    *build_mapped = [func, build_mapped](std::shared_ptr<RankingElement<T>> elem)
+    *build_mapped = [func, weak_build](std::shared_ptr<RankingElement<T>> elem)
         -> std::shared_ptr<RankingElement<R>>
     {
         if (!elem) {
@@ -180,8 +189,15 @@ requires std::invocable<F, const T&, Rank>
         Rank mapped_rank = compute_rank();
         
         // Create a lazy computation for the next element
-        auto compute_next = [build_mapped, elem]() -> std::shared_ptr<RankingElement<R>> {
-            return (*build_mapped)(elem->next());
+        auto build_ref = weak_build.lock();
+        auto compute_next = [weak_build, build_ref, elem]() -> std::shared_ptr<RankingElement<R>> {
+            if (auto locked = weak_build.lock()) {
+                return (*locked)(elem->next());
+            }
+            if (build_ref) {
+                return (*build_ref)(elem->next());
+            }
+            return nullptr;
         };
         
         // Build the mapped element with lazy value and lazy next
@@ -244,8 +260,9 @@ requires std::invocable<F, const T&, size_t>
     using BuildFunc = std::function<std::shared_ptr<RankingElement<R>>(
         std::shared_ptr<RankingElement<T>>, size_t)>;
     auto build_mapped = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_mapped;
     
-    *build_mapped = [func, build_mapped](
+    *build_mapped = [func, weak_build](
         std::shared_ptr<RankingElement<T>> elem,
         size_t index) -> std::shared_ptr<RankingElement<R>>
     {
@@ -259,10 +276,17 @@ requires std::invocable<F, const T&, size_t>
         };
         
         // Create a lazy computation for the next element
-        auto compute_next = [build_mapped, elem, index]()
+        auto build_ref = weak_build.lock();
+        auto compute_next = [weak_build, build_ref, elem, index]()
             -> std::shared_ptr<RankingElement<R>>
         {
-            return (*build_mapped)(elem->next(), index + 1);
+            if (auto locked = weak_build.lock()) {
+                return (*locked)(elem->next(), index + 1);
+            }
+            if (build_ref) {
+                return (*build_ref)(elem->next(), index + 1);
+            }
+            return nullptr;
         };
         
         // Build the mapped element with lazy value and next

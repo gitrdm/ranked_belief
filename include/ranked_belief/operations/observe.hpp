@@ -28,8 +28,9 @@ template<typename T>
     using BuildFunc = std::function<std::shared_ptr<RankingElement<T>>(
         std::shared_ptr<RankingElement<T>>) >;
     auto build_normalized = std::make_shared<BuildFunc>();
+    std::weak_ptr<BuildFunc> weak_build = build_normalized;
 
-    *build_normalized = [build_normalized, shift_amount](
+    *build_normalized = [weak_build, shift_amount](
         std::shared_ptr<RankingElement<T>> current) -> std::shared_ptr<RankingElement<T>> {
         if (!current) {
             return nullptr;
@@ -39,8 +40,19 @@ template<typename T>
             return nullptr;
         }
 
-        auto compute_next = [build_normalized, current]() -> std::shared_ptr<RankingElement<T>> {
-            return (*build_normalized)(current->next());
+        auto build_ref = weak_build.lock();
+
+        auto compute_next = [weak_build, build_ref, current]() -> std::shared_ptr<RankingElement<T>> {
+            auto next_elem = current->next();
+
+            if (auto locked = weak_build.lock()) {
+                return (*locked)(next_elem);
+            }
+
+            if (build_ref) {
+                return (*build_ref)(next_elem);
+            }
+            return nullptr;
         };
 
         Rank adjusted_rank = current->rank() - shift_amount;
