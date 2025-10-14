@@ -182,6 +182,27 @@ public:
      */
     [[nodiscard]] bool next_is_forced() const noexcept { return next_.is_forced(); }
 
+    /**
+     * @brief Get the promise for the value associated with this ranking element.
+     *
+     * This allows access to the lazy value promise without forcing evaluation.
+     * Useful for constructing new lazy nodes that reuse existing promises.
+     *
+     * @return Const reference to the value promise.
+     */
+    [[nodiscard]] Promise<T>& value_promise() noexcept { return value_; }
+
+    /**
+     * @brief Extract the value promise by moving it out.
+     *
+     * This allows transferring ownership of the lazy value computation to another
+     * RankingElement without forcing evaluation. After calling this, the current
+     * element's value promise will be in a moved-from state.
+     *
+     * @return The moved value promise.
+     */
+    [[nodiscard]] Promise<T> extract_value_promise() && { return std::move(value_); }
+
 private:
     mutable Promise<T> value_;  ///< Lazy value (mutable for lazy evaluation, memoized on first access)
     Rank rank_;                  ///< The rank of this value
@@ -297,6 +318,35 @@ template<typename T, typename Generator>
         make_promise([generator, index = start_index + 1]() mutable {
             return make_infinite_sequence<T>(generator, index);
         }));
+}
+
+/**
+ * @brief Helper function to create a ranking element with lazy value and next.
+ *
+ * Provides a convenient way to build fully lazy sequences by directly providing
+ * the value promise and lazy next computation.
+ *
+ * @tparam T The type of the value.
+ * @param value_promise The promise for the value.
+ * @param rank The rank of the value.
+ * @param next The lazy next element computation.
+ * @return A shared pointer to the new element.
+ *
+ * Example:
+ * @code
+ * auto elem = make_lazy_node(make_promise([]{ return 42; }), Rank::zero(),
+ *                            make_promise([]{ return nullptr; }));
+ * @endcode
+ */
+template<typename T>
+[[nodiscard]] std::shared_ptr<RankingElement<T>> make_lazy_node(
+    Promise<T>&& value_promise,
+    Rank rank,
+    LazyNext<T> next) {
+    return std::make_shared<RankingElement<T>>(
+        std::move(value_promise),
+        std::move(rank),
+        std::move(next));
 }
 
 }  // namespace ranked_belief

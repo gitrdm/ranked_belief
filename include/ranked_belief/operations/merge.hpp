@@ -103,8 +103,8 @@ template<typename T>
                 return nullptr;
             };
             
-            return std::make_shared<RankingElement<T>>(
-                elem1->value(),
+            return make_lazy_node(
+                std::move(*elem1).extract_value_promise(),
                 elem1->rank(),
                 make_promise(std::move(compute_next))
             );
@@ -134,8 +134,8 @@ template<typename T>
                 return nullptr;
             };
             
-            return std::make_shared<RankingElement<T>>(
-                elem1->value(),
+            return make_lazy_node(
+                std::move(elem1->value_promise()),
                 elem1_rank,
                 make_promise(std::move(compute_next))
             );
@@ -157,8 +157,8 @@ template<typename T>
                 return nullptr;
             };
             
-            return std::make_shared<RankingElement<T>>(
-                elem2->value(),
+            return make_lazy_node(
+                std::move(elem2->value_promise()),
                 elem2_rank,
                 make_promise(std::move(compute_next))
             );
