@@ -115,7 +115,6 @@ ranked_belief/
 │   └── rankedBeliefR/        # R package bindings
 ├── docs/                     # Curated API documentation
 │   └── API.md                # Narrative tour of the API
-├── ranked-programming/       # Original Racket implementation (reference)
 ├── CPP_PORT_DESIGN.md        # Design rationale for C++ port
 ├── BUILDING.md               # Detailed build instructions
 └── README.md                 # This file
