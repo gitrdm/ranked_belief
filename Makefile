@@ -5,7 +5,7 @@ FUZZ_TARGET := ./build-fuzz/fuzz/ranked_belief_fuzz
 
 .PHONY: help build configure-default build-default tests configure-tests build-tests test \
 	sanitizers configure-sanitizers build-sanitizers fuzz configure-fuzz build-fuzz-target \
-	fuzz-run clean
+	fuzz-run docs show-docs clean
 
 help:
 	@echo "Available targets:"
@@ -15,6 +15,8 @@ help:
 	@echo "  sanitizers        Configure and build with sanitizers preset"
 	@echo "  fuzz              Configure and build the fuzzing preset"
 	@echo "  fuzz-run          Build fuzz target (if needed) and run it (override RUNS=N)"
+	@echo "  docs              Generate Doxygen documentation"
+	@echo "  show-docs         Open generated documentation in browser"
 	@echo "  clean             Remove generated build directories"
 
 build: build-default
@@ -59,6 +61,12 @@ fuzz: build-fuzz-target
 
 fuzz-run: build-fuzz-target
 	$(FUZZ_TARGET) -runs=$(RUNS)
+
+docs:
+	doxygen Doxyfile
+
+show-docs: docs
+	xdg-open build/docs/html/index.html
 
 clean:
 	rm -rf build build-test build-sanitizers build-fuzz
