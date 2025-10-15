@@ -200,7 +200,7 @@ result <- rb_merge_apply_int(ops, function(op) {
 rb_take_n_int(result, 4)
 ```
 
-**Status:** Proof-of-concept with 27 passing tests. Demonstrates compositional patterns without manual enumeration.
+**Status:** Proof-of-concept with 27 passing tests. 
 
 **Note:** Both Python and R bindings are intended to **exercise and validate the C API**, not as production-ready interfaces. They serve as:
 - Integration tests for the C API
@@ -252,7 +252,7 @@ cmake --build build-sanitizers
 
 ## References
 
-- Original Racket implementation: `ranked-programming/`
+- Original Racket implementation: `ranked-programming/` (https://github.com/tjitze/ranked-programming.git)
 - Design rationale: `CPP_PORT_DESIGN.md`
 - API documentation: `docs/API.md`
 - Build guide: `BUILDING.md`
