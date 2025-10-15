@@ -98,28 +98,6 @@ HTML documentation will be written to `build/docs/html/index.html`.
 
 The generated reference complements the curated guide in `docs/API.md`.
 
-## Repository Layout
-
-```
-ranked_belief/
-├── include/ranked_belief/    # C++ template library (header-only)
-│   ├── c_api.h               # C interoperability layer
-│   ├── operations/           # Lazy operations (map, filter, merge, etc.)
-│   └── *.hpp                 # Core types (Rank, Promise, RankingFunction)
-├── src/                      # C API implementation
-│   └── c_api.cpp
-├── tests/                    # Google Test suite (426+ tests)
-├── examples/                 # C++ example programs
-├── bindings/                 # Language bindings (proof-of-concept)
-│   ├── python/               # Python bindings via pybind11
-│   └── rankedBeliefR/        # R package bindings
-├── docs/                     # Curated API documentation
-│   └── API.md                # Narrative tour of the API
-├── CPP_PORT_DESIGN.md        # Design rationale for C++ port
-├── BUILDING.md               # Detailed build instructions
-└── README.md                 # This file
-```
-
 ## Core C++ Library
 
 The header-only C++ library provides the full power of ranked belief computations with compile-time type safety:
