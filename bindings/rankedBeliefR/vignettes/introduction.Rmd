@@ -1,0 +1,168 @@
+---
+title: "Introduction to rankedBeliefR"
+author: "rankedBeliefR Team"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to rankedBeliefR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Don't evaluate code during package build
+)
+```
+
+## Overview
+
+The `rankedBeliefR` package provides R bindings for the ranked_belief C++ library, which implements lazy ranking functions for epistemic reasoning. This package allows you to work with ranked beliefs—probability distributions where outcomes are ordered by plausibility ranks rather than precise probabilities.
+
+**Note:** This package is a proof-of-concept demonstrating the C API of the ranked_belief library. It is not intended for production use but serves as a validation of the C API design.
+
+## Key Concepts
+
+- **Ranking**: A collection of values, each with a non-negative rank indicating exceptionality (0 = normal, higher = more exceptional)
+- **Lazy evaluation**: Rankings are computed on-demand, enabling infinite structures
+- **Monadic composition**: Use `rb_merge_apply_int` to compose dependent rankings
+
+## Basic Operations
+
+### Creating Rankings
+
+```{r create_rankings}
+library(rankedBeliefR)
+
+# Singleton ranking (one value at rank 0)
+single <- rb_singleton_int(42L)
+rb_take_n_int(single, 5)
+rb_free(single)
+
+# From arrays (values with different ranks)
+ranking <- rb_from_array_int(
+  values = c(1L, 2L, 3L),
+  ranks = c(0, 1, 2)
+)
+rb_take_n_int(ranking, 5)
+rb_free(ranking)
+```
+
+### Transforming Rankings
+
+```{r transform}
+# Map: apply function to each value
+original <- rb_from_array_int(values = c(1L, 2L, 3L), ranks = c(0, 1, 2))
+doubled <- rb_map_int(original, function(x) x * 2L)
+rb_take_n_int(doubled, 5)
+rb_free(original)
+rb_free(doubled)
+
+# Filter: keep only values matching predicate
+numbers <- rb_from_array_int(values = 1L:10L, ranks = rep(0, 10))
+evens <- rb_filter_int(numbers, function(x) x %% 2 == 0)
+rb_take_n_int(evens, 10)
+rb_free(numbers)
+rb_free(evens)
+```
+
+### Combining Rankings
+
+```{r combine}
+# Merge: interleave two rankings by rank
+r1 <- rb_from_array_int(values = c(1L, 3L), ranks = c(0, 2))
+r2 <- rb_from_array_int(values = c(2L, 4L), ranks = c(1, 3))
+merged <- rb_merge_int(r1, r2)
+rb_take_n_int(merged, 5)
+rb_free(r1)
+rb_free(r2)
+rb_free(merged)
+```
+
+## Dependent Rankings Example: Beer and Peanuts
+
+This example shows how to model dependent variables where peanut consumption depends on beer consumption.
+
+```{r beer_peanuts}
+# Helper: normally FALSE, exceptionally TRUE
+nrm_exc_bool <- function() {
+  rb_from_array_int(values = c(0L, 1L), ranks = c(0, 1))
+}
+
+# Peanuts depend on beer
+peanuts_given_beer <- function(beer_val) {
+  if (beer_val == 1L) {
+    # If drinking beer, normally eat peanuts (1), exceptionally don't (0)
+    rb_from_array_int(values = c(1L, 0L), ranks = c(0, 1))
+  } else {
+    # If not drinking beer, don't eat peanuts
+    rb_singleton_int(0L)
+  }
+}
+
+# Encode (beer, peanuts) pair as single integer
+encode_pair <- function(beer, peanuts) as.integer(beer * 2 + peanuts)
+decode_pair <- function(val) c(beer = val %/% 2, peanuts = val %% 2)
+
+# Create dependent ranking using rb_merge_apply_int (monadic bind)
+beer_dist <- nrm_exc_bool()
+
+combined <- rb_merge_apply_int(beer_dist, function(beer_val) {
+  peanuts_dist <- peanuts_given_beer(beer_val)
+  
+  # Map to encoded pairs
+  rb_merge_apply_int(peanuts_dist, function(peanuts_val) {
+    rb_singleton_int(encode_pair(beer_val, peanuts_val))
+  })
+})
+
+# Sample results
+samples <- rb_take_n_int(combined, 10)
+cat("Possible scenarios (beer=0/1, peanuts=0/1):\n")
+for (i in seq_len(nrow(samples))) {
+  pair <- decode_pair(samples$value[i])
+  cat(sprintf("  beer=%d, peanuts=%d (rank %g)\n", 
+              pair['beer'], pair['peanuts'], samples$rank[i]))
+}
+
+rb_free(beer_dist)
+rb_free(combined)
+```
+
+**Interpretation:**
+- Rank 0: No beer, no peanuts (most normal)
+- Rank 1: Beer and peanuts (one exceptional event: drinking beer)
+- Rank 2: Beer but no peanuts (two exceptional events)
+
+## Memory Management
+
+Always call `rb_free()` on ranking objects when done to prevent memory leaks:
+
+```{r memory, eval=FALSE}
+ranking <- rb_singleton_int(1L)
+# ... use ranking ...
+rb_free(ranking)  # Clean up
+```
+
+## Next Steps
+
+- See `vignette("boolean-circuit")` for a practical diagnosis example
+- See `vignette("recursive-rankings")` for infinite lazy structures
+- Check `inst/examples/` for more code samples
+
+## API Reference
+
+Core functions:
+- `rb_singleton_int(value)`: Create singleton ranking
+- `rb_from_array_int(values, ranks)`: Create ranking from arrays
+- `rb_map_int(ranking, fn)`: Transform values
+- `rb_filter_int(ranking, predicate)`: Filter values
+- `rb_merge_int(r1, r2)`: Combine rankings
+- `rb_merge_apply_int(ranking, fn)`: Monadic bind (composition)
+- `rb_observe_value_int(ranking, value)`: Condition on observation
+- `rb_take_n_int(ranking, n)`: Sample first n elements
+- `rb_first_int(ranking)`: Get first element
+- `rb_is_empty(ranking)`: Check if empty
+- `rb_free(ranking)`: Free memory

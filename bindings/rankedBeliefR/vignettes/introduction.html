@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="rankedBeliefR Team" />
+
+<meta name="date" content="2025-10-14" />
+
+<title>Introduction to rankedBeliefR</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Introduction to rankedBeliefR</h1>
+<h4 class="author">rankedBeliefR Team</h4>
+<h4 class="date">2025-10-14</h4>
+
+
+
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>The <code>rankedBeliefR</code> package provides R bindings for the
+ranked_belief C++ library, which implements lazy ranking functions for
+epistemic reasoning. This package allows you to work with ranked
+beliefs—probability distributions where outcomes are ordered by
+plausibility ranks rather than precise probabilities.</p>
+<p><strong>Note:</strong> This package is a proof-of-concept
+demonstrating the C API of the ranked_belief library. It is not intended
+for production use but serves as a validation of the C API design.</p>
+</div>
+<div id="key-concepts" class="section level2">
+<h2>Key Concepts</h2>
+<ul>
+<li><strong>Ranking</strong>: A collection of values, each with a
+non-negative rank indicating exceptionality (0 = normal, higher = more
+exceptional)</li>
+<li><strong>Lazy evaluation</strong>: Rankings are computed on-demand,
+enabling infinite structures</li>
+<li><strong>Monadic composition</strong>: Use
+<code>rb_merge_apply_int</code> to compose dependent rankings</li>
+</ul>
+</div>
+<div id="basic-operations" class="section level2">
+<h2>Basic Operations</h2>
+<div id="creating-rankings" class="section level3">
+<h3>Creating Rankings</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(rankedBeliefR)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co"># Singleton ranking (one value at rank 0)</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>single <span class="ot">&lt;-</span> <span class="fu">rb_singleton_int</span>(<span class="dv">42</span><span class="dt">L</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">rb_take_n_int</span>(single, <span class="dv">5</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt;   value rank</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt; 1    42    0</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="fu">rb_free</span>(single)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co"># From arrays (values with different ranks)</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>ranking <span class="ot">&lt;-</span> <span class="fu">rb_from_array_int</span>(</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>  <span class="at">values =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="dt">L</span>, <span class="dv">2</span><span class="dt">L</span>, <span class="dv">3</span><span class="dt">L</span>),</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  <span class="at">ranks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>)</span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="fu">rb_take_n_int</span>(ranking, <span class="dv">5</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a><span class="co">#&gt;   value rank</span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="co">#&gt; 1     1    0</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co">#&gt; 2     2    1</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="co">#&gt; 3     3    2</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="fu">rb_free</span>(ranking)</span></code></pre></div>
+</div>
+<div id="transforming-rankings" class="section level3">
+<h3>Transforming Rankings</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Map: apply function to each value</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>original <span class="ot">&lt;-</span> <span class="fu">rb_from_array_int</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="dt">L</span>, <span class="dv">2</span><span class="dt">L</span>, <span class="dv">3</span><span class="dt">L</span>), <span class="at">ranks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>))</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>doubled <span class="ot">&lt;-</span> <span class="fu">rb_map_int</span>(original, <span class="cf">function</span>(x) x <span class="sc">*</span> <span class="dv">2</span><span class="dt">L</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">rb_take_n_int</span>(doubled, <span class="dv">5</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;   value rank</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; 1     2    0</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; 2     4    1</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; 3     6    2</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="fu">rb_free</span>(original)</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="fu">rb_free</span>(doubled)</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co"># Filter: keep only values matching predicate</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>numbers <span class="ot">&lt;-</span> <span class="fu">rb_from_array_int</span>(<span class="at">values =</span> <span class="dv">1</span><span class="dt">L</span><span class="sc">:</span><span class="dv">10</span><span class="dt">L</span>, <span class="at">ranks =</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="dv">10</span>))</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>evens <span class="ot">&lt;-</span> <span class="fu">rb_filter_int</span>(numbers, <span class="cf">function</span>(x) x <span class="sc">%%</span> <span class="dv">2</span> <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="fu">rb_take_n_int</span>(evens, <span class="dv">10</span>)</span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt;   value rank</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; 1     2    0</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; 2     4    0</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt; 3     6    0</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; 4     8    0</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; 5    10    0</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="fu">rb_free</span>(numbers)</span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="fu">rb_free</span>(evens)</span></code></pre></div>
+</div>
+<div id="combining-rankings" class="section level3">
+<h3>Combining Rankings</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Merge: interleave two rankings by rank</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>r1 <span class="ot">&lt;-</span> <span class="fu">rb_from_array_int</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="dt">L</span>, <span class="dv">3</span><span class="dt">L</span>), <span class="at">ranks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>))</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>r2 <span class="ot">&lt;-</span> <span class="fu">rb_from_array_int</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="dv">2</span><span class="dt">L</span>, <span class="dv">4</span><span class="dt">L</span>), <span class="at">ranks =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>))</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>merged <span class="ot">&lt;-</span> <span class="fu">rb_merge_int</span>(r1, r2)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="fu">rb_take_n_int</span>(merged, <span class="dv">5</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;   value rank</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 1     1    0</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 2     2    1</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 3     3    2</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; 4     4    3</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="fu">rb_free</span>(r1)</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="fu">rb_free</span>(r2)</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="fu">rb_free</span>(merged)</span></code></pre></div>
+</div>
+</div>
+<div id="dependent-rankings-example-beer-and-peanuts" class="section level2">
+<h2>Dependent Rankings Example: Beer and Peanuts</h2>
+<p>This example shows how to model dependent variables where peanut
+consumption depends on beer consumption.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Helper: normally FALSE, exceptionally TRUE</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>nrm_exc_bool <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">rb_from_array_int</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="dv">0</span><span class="dt">L</span>, <span class="dv">1</span><span class="dt">L</span>), <span class="at">ranks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>))</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>}</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co"># Peanuts depend on beer</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>peanuts_given_beer <span class="ot">&lt;-</span> <span class="cf">function</span>(beer_val) {</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>  <span class="cf">if</span> (beer_val <span class="sc">==</span> <span class="dv">1</span><span class="dt">L</span>) {</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>    <span class="co"># If drinking beer, normally eat peanuts (1), exceptionally don&#39;t (0)</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>    <span class="fu">rb_from_array_int</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="dt">L</span>, <span class="dv">0</span><span class="dt">L</span>), <span class="at">ranks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>))</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>    <span class="co"># If not drinking beer, don&#39;t eat peanuts</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>    <span class="fu">rb_singleton_int</span>(<span class="dv">0</span><span class="dt">L</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>  }</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>}</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co"># Encode (beer, peanuts) pair as single integer</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>encode_pair <span class="ot">&lt;-</span> <span class="cf">function</span>(beer, peanuts) <span class="fu">as.integer</span>(beer <span class="sc">*</span> <span class="dv">2</span> <span class="sc">+</span> peanuts)</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>decode_pair <span class="ot">&lt;-</span> <span class="cf">function</span>(val) <span class="fu">c</span>(<span class="at">beer =</span> val <span class="sc">%/%</span> <span class="dv">2</span>, <span class="at">peanuts =</span> val <span class="sc">%%</span> <span class="dv">2</span>)</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co"># Create dependent ranking using rb_merge_apply_int (monadic bind)</span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>beer_dist <span class="ot">&lt;-</span> <span class="fu">nrm_exc_bool</span>()</span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>combined <span class="ot">&lt;-</span> <span class="fu">rb_merge_apply_int</span>(beer_dist, <span class="cf">function</span>(beer_val) {</span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>  peanuts_dist <span class="ot">&lt;-</span> <span class="fu">peanuts_given_beer</span>(beer_val)</span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>  </span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>  <span class="co"># Map to encoded pairs</span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>  <span class="fu">rb_merge_apply_int</span>(peanuts_dist, <span class="cf">function</span>(peanuts_val) {</span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>    <span class="fu">rb_singleton_int</span>(<span class="fu">encode_pair</span>(beer_val, peanuts_val))</span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>  })</span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a>})</span>
+<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a></span>
+<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a><span class="co"># Sample results</span></span>
+<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>samples <span class="ot">&lt;-</span> <span class="fu">rb_take_n_int</span>(combined, <span class="dv">10</span>)</span>
+<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Possible scenarios (beer=0/1, peanuts=0/1):</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a><span class="co">#&gt; Possible scenarios (beer=0/1, peanuts=0/1):</span></span>
+<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(samples))) {</span>
+<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a>  pair <span class="ot">&lt;-</span> <span class="fu">decode_pair</span>(samples<span class="sc">$</span>value[i])</span>
+<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;  beer=%d, peanuts=%d (rank %g)</span><span class="sc">\n</span><span class="st">&quot;</span>, </span>
+<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a>              pair[<span class="st">&#39;beer&#39;</span>], pair[<span class="st">&#39;peanuts&#39;</span>], samples<span class="sc">$</span>rank[i]))</span>
+<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a>}</span>
+<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a><span class="co">#&gt;   beer=0, peanuts=0 (rank 0)</span></span>
+<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a><span class="co">#&gt;   beer=1, peanuts=1 (rank 1)</span></span>
+<span id="cb4-44"><a href="#cb4-44" tabindex="-1"></a><span class="co">#&gt;   beer=1, peanuts=0 (rank 2)</span></span>
+<span id="cb4-45"><a href="#cb4-45" tabindex="-1"></a></span>
+<span id="cb4-46"><a href="#cb4-46" tabindex="-1"></a><span class="fu">rb_free</span>(beer_dist)</span>
+<span id="cb4-47"><a href="#cb4-47" tabindex="-1"></a><span class="fu">rb_free</span>(combined)</span></code></pre></div>
+<p><strong>Interpretation:</strong> - Rank 0: No beer, no peanuts (most
+normal) - Rank 1: Beer and peanuts (one exceptional event: drinking
+beer) - Rank 2: Beer but no peanuts (two exceptional events)</p>
+</div>
+<div id="memory-management" class="section level2">
+<h2>Memory Management</h2>
+<p>Always call <code>rb_free()</code> on ranking objects when done to
+prevent memory leaks:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>ranking <span class="ot">&lt;-</span> <span class="fu">rb_singleton_int</span>(<span class="dv">1</span><span class="dt">L</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co"># ... use ranking ...</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">rb_free</span>(ranking)  <span class="co"># Clean up</span></span></code></pre></div>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next Steps</h2>
+<ul>
+<li>See <code>vignette(&quot;boolean-circuit&quot;)</code> for a practical
+diagnosis example</li>
+<li>See <code>vignette(&quot;recursive-rankings&quot;)</code> for infinite lazy
+structures</li>
+<li>Check <code>inst/examples/</code> for more code samples</li>
+</ul>
+</div>
+<div id="api-reference" class="section level2">
+<h2>API Reference</h2>
+<p>Core functions: - <code>rb_singleton_int(value)</code>: Create
+singleton ranking - <code>rb_from_array_int(values, ranks)</code>:
+Create ranking from arrays - <code>rb_map_int(ranking, fn)</code>:
+Transform values - <code>rb_filter_int(ranking, predicate)</code>:
+Filter values - <code>rb_merge_int(r1, r2)</code>: Combine rankings -
+<code>rb_merge_apply_int(ranking, fn)</code>: Monadic bind (composition)
+- <code>rb_observe_value_int(ranking, value)</code>: Condition on
+observation - <code>rb_take_n_int(ranking, n)</code>: Sample first n
+elements - <code>rb_first_int(ranking)</code>: Get first element -
+<code>rb_is_empty(ranking)</code>: Check if empty -
+<code>rb_free(ranking)</code>: Free memory</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

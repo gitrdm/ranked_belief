@@ -49,6 +49,25 @@ The handles returned by the package are external pointers that free underlying
 resources when garbage-collected. `rb_free()` can be used to release them
 explicitly.
 
+## Documentation
+
+The package includes three vignettes demonstrating different use cases:
+
+1. **Introduction to rankedBeliefR** - Basic operations and API overview
+2. **Boolean Circuit Diagnosis** - Practical fault diagnosis example  
+3. **Recursive Rankings and Lazy Evaluation** - Working with infinite structures
+
+After installing the package, build the vignettes with:
+
+```bash
+cd bindings/rankedBeliefR
+Rscript build_vignettes.R
+```
+
+Then open the HTML files in `vignettes/` directory. See `vignettes/README.md` for details.
+
+Additional examples are available in `inst/examples/`.
+
 ## Notes
 
 - Only the integer-valued subset of the C API is currently wrapped. Extending

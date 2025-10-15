@@ -1,0 +1,173 @@
+---
+title: "Boolean Circuit Diagnosis"
+author: "rankedBeliefR Team"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Boolean Circuit Diagnosis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Don't evaluate code during package build
+)
+```
+
+## Problem Statement
+
+This vignette demonstrates fault diagnosis in a three-gate boolean circuit using ranked beliefs. The circuit contains:
+
+- **N**: A NOT gate
+- **O1**: First OR gate
+- **O2**: Second OR gate
+
+The circuit computes: `output = ((NOT input1) OR input2) OR input3`
+
+Each gate can either work normally (rank 0) or fail (rank 1). When a gate fails, it outputs 0 regardless of inputs.
+
+## The Circuit Model
+
+```{r circuit_diagram, echo=FALSE, results='asis'}
+cat("```\n")
+cat("input1 ---[N]---+\n")
+cat("                |\n")
+cat("input2 --------[O1]---+\n")
+cat("                      |\n")
+cat("input3 --------------[O2]--- output\n")
+cat("```\n")
+```
+
+## Implementation
+
+```{r load_library}
+library(rankedBeliefR)
+```
+
+### Helper Function: Encode Scenarios
+
+We encode the circuit state as a single integer to avoid nested rankings:
+- Bit 3: output (0 or 1)
+- Bit 2: N gate state (1=working, 0=failed)
+- Bit 1: O1 gate state
+- Bit 0: O2 gate state
+
+```{r encoding}
+# Decode scenario integer back to components
+decode_scenario <- function(val) {
+  output <- bitwShiftR(val, 3) %% 2
+  n_gate <- bitwShiftR(val, 2) %% 2
+  o1_gate <- bitwShiftR(val, 1) %% 2
+  o2_gate <- val %% 2
+  list(output = output, N = n_gate, O1 = o1_gate, O2 = o2_gate)
+}
+```
+
+### Circuit Function
+
+The circuit function computes all possible scenarios (2³ = 8 combinations of gate states):
+
+```{r circuit_function}
+circuit <- function(input1, input2, input3) {
+  # Enumerate all 8 scenarios (each gate: working=1 or failed=0)
+  scenarios <- list()
+  
+  for (n in c(1L, 0L)) {
+    for (o1 in c(1L, 0L)) {
+      for (o2 in c(1L, 0L)) {
+        # Compute intermediate signals
+        l1 <- if (n == 1L) as.integer(!input1) else 0L
+        l2 <- if (o1 == 1L) as.integer(l1 | input2) else 0L
+        output <- if (o2 == 1L) as.integer(l2 | input3) else 0L
+        
+        # Rank = number of failed gates
+        rank <- (1L - n) + (1L - o1) + (1L - o2)
+        
+        # Encode as single integer: output*8 + n*4 + o1*2 + o2
+        encoded <- output * 8L + n * 4L + o1 * 2L + o2
+        scenarios[[length(scenarios) + 1]] <- list(value = encoded, rank = rank)
+      }
+    }
+  }
+  
+  # Build ranking from all scenarios
+  values <- sapply(scenarios, function(s) s$value)
+  ranks <- sapply(scenarios, function(s) s$rank)
+  rb_from_array_int(values = as.integer(values), ranks = ranks)
+}
+```
+
+## Diagnosis Example
+
+Let's diagnose a circuit with inputs `(FALSE, FALSE, TRUE)` that produces output `FALSE`:
+
+```{r diagnosis}
+cat("Circuit inputs: input1=FALSE, input2=FALSE, input3=TRUE\n")
+cat("Observed output: FALSE\n\n")
+
+# Create prior distribution over scenarios
+prior <- circuit(FALSE, FALSE, TRUE)
+
+# Get all scenarios
+all_scenarios <- rb_take_n_int(prior, 100)
+
+# Filter for scenarios where output=0 (FALSE)
+output_false <- all_scenarios[bitwShiftR(all_scenarios$value, 3) %% 2 == 0, ]
+output_false <- output_false[order(output_false$rank), ]
+
+# Show top 6 explanations
+cat("Top explanations (rank = number of failed gates):\n\n")
+for (i in seq_len(min(6, nrow(output_false)))) {
+  sc <- decode_scenario(output_false$value[i])
+  cat(sprintf("%d. Rank %g: ", i, output_false$rank[i]))
+  cat(sprintf("N=%s, O1=%s, O2=%s → output=%s\n",
+              ifelse(sc$N == 1, "OK", "FAIL"),
+              ifelse(sc$O1 == 1, "OK", "FAIL"),
+              ifelse(sc$O2 == 1, "OK", "FAIL"),
+              ifelse(sc$output == 1, "1", "0")))
+}
+
+rb_free(prior)
+```
+
+## Interpretation
+
+The diagnosis ranks explanations by plausibility:
+
+1. **Rank 1** (most plausible): Exactly one gate failed
+   - O2 failed: The final OR gate is stuck at 0
+   - This is the simplest single-fault explanation
+
+2. **Rank 2**: Two gates failed
+   - Various combinations of two failures
+
+3. **Rank 3**: All three gates failed
+   - Least plausible (requires three simultaneous failures)
+
+## Why Ranked Beliefs?
+
+Traditional probability requires assigning exact failure probabilities to each gate. Ranked beliefs only require ordering failures by plausibility:
+
+- No failures is more normal than one failure
+- One failure is more normal than two failures
+- Etc.
+
+This qualitative approach is often more practical when exact probabilities are unknown or difficult to estimate.
+
+## Practical Applications
+
+This approach generalizes to:
+- Hardware fault diagnosis
+- Software debugging (which component is buggy?)
+- Network troubleshooting (which node is down?)
+- Medical diagnosis (which organ is malfunctioning?)
+
+The key advantage: **You don't need exact probabilities, just a plausibility ordering**.
+
+## See Also
+
+- `vignette("introduction")`: Basic operations
+- `vignette("recursive-rankings")`: Infinite lazy structures

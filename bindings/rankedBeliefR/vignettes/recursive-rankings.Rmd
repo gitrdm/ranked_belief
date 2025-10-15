@@ -1,0 +1,219 @@
+---
+title: "Recursive Rankings and Lazy Evaluation"
+author: "rankedBeliefR Team"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Recursive Rankings and Lazy Evaluation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Don't evaluate code during package build
+)
+```
+
+## Infinite Structures with Lazy Evaluation
+
+One of the most powerful features of ranked beliefs is lazy evaluation—rankings are computed on-demand, enabling infinite or very large structures without exhaustive enumeration.
+
+This vignette demonstrates how to work with infinite lazy rankings in R.
+
+## The Recursive Doubling Example
+
+Consider a ranking that normally produces value `v`, but exceptionally produces a recursive call with `v * 2`:
+
+```
+recursive_fun(v) = v @ rank 0
+                 | recursive_fun(v * 2) @ rank 1
+```
+
+This creates an infinite sequence:
+- `1` at rank 0
+- `2` at rank 1  
+- `4` at rank 2
+- `8` at rank 3
+- `16` at rank 4
+- ...
+
+## Implementation in R
+
+Since R is eagerly evaluated, we enumerate a finite prefix:
+
+```{r load_library}
+library(rankedBeliefR)
+```
+
+```{r recursive_function}
+recursive_fun <- function(value, max_depth = 20) {
+  # Build finite prefix of infinite recursive structure
+  values_vec <- integer(max_depth)
+  ranks_vec <- numeric(max_depth)
+  
+  current_val <- value
+  for (i in seq_len(max_depth)) {
+    values_vec[i] <- current_val
+    ranks_vec[i] <- i - 1  # Rank starts at 0
+    current_val <- current_val * 2L
+  }
+  
+  rb_from_array_int(values = values_vec, ranks = ranks_vec)
+}
+```
+
+## Sampling from the Infinite Structure
+
+```{r sample}
+# Create ranking starting with 1
+ranking <- recursive_fun(1L, max_depth = 15)
+
+# Take first 10 values
+samples <- rb_take_n_int(ranking, 10)
+print(samples)
+
+rb_free(ranking)
+```
+
+## Understanding the Output
+
+Each row shows:
+- `value`: The value at this position (powers of 2)
+- `rank`: How "exceptional" this value is (equals log₂ of value)
+
+The pattern `1, 2, 4, 8, 16, ...` emerges naturally from the recursive definition.
+
+## Practical Example: Retry Logic
+
+A more practical example is modeling retry logic with exponential backoff:
+
+```{r retry_backoff}
+# Model a request that normally succeeds (0), but may require retries
+# Retry delays: 1ms, 2ms, 4ms, 8ms, ...
+retry_delays <- function(initial_delay_ms = 1L, max_retries = 10) {
+  values <- integer(max_retries + 1)
+  ranks <- numeric(max_retries + 1)
+  
+  # Success on first try (delay = 0)
+  values[1] <- 0L
+  ranks[1] <- 0
+  
+  # Retries with increasing delays
+  current_delay <- initial_delay_ms
+  for (i in 2:(max_retries + 1)) {
+    values[i] <- current_delay
+    ranks[i] <- i - 1
+    current_delay <- current_delay * 2L
+  }
+  
+  rb_from_array_int(values = values, ranks = ranks)
+}
+
+# Model request delays
+delays <- retry_delays(initial_delay_ms = 100L, max_retries = 8)
+delay_samples <- rb_take_n_int(delays, 10)
+
+cat("Request delay scenarios:\n")
+for (i in seq_len(nrow(delay_samples))) {
+  if (delay_samples$value[i] == 0) {
+    cat(sprintf("  Rank %g: Success immediately (0ms)\n", delay_samples$rank[i]))
+  } else {
+    retries <- delay_samples$rank[i]
+    cat(sprintf("  Rank %g: Failed %d time(s), delay=%dms\n", 
+                delay_samples$rank[i], retries, delay_samples$value[i]))
+  }
+}
+
+rb_free(delays)
+```
+
+## Combining Recursive Rankings
+
+You can combine multiple infinite rankings using `rb_merge_int`:
+
+```{r combine_infinite}
+# Two sequences: powers of 2 and powers of 3
+powers_of_2 <- recursive_fun(1L, max_depth = 10)
+powers_of_3 <- recursive_fun(1L, max_depth = 10)
+
+# Transform second to actually be powers of 3
+powers_of_3_actual <- rb_map_int(powers_of_3, function(x) {
+  as.integer(3^(log2(x)))  # Convert 2^n to 3^n
+})
+
+# Merge them
+combined <- rb_merge_int(powers_of_2, powers_of_3_actual)
+combined_samples <- rb_take_n_int(combined, 15)
+
+cat("\nCombined powers of 2 and 3:\n")
+print(combined_samples)
+
+rb_free(powers_of_2)
+rb_free(powers_of_3)
+rb_free(powers_of_3_actual)
+rb_free(combined)
+```
+
+## Filtering Infinite Rankings
+
+You can filter infinite rankings, but be careful—if your predicate is too restrictive, you might skip many elements:
+
+```{r filter_infinite}
+# Only keep values >= 8
+large_powers <- recursive_fun(1L, max_depth = 15)
+filtered <- rb_filter_int(large_powers, function(x) x >= 8L)
+filtered_samples <- rb_take_n_int(filtered, 5)
+
+cat("\nPowers of 2 that are >= 8:\n")
+print(filtered_samples)
+
+rb_free(large_powers)
+rb_free(filtered)
+```
+
+## Practical Considerations
+
+### Memory Management
+
+Even though rankings are lazy, sampled values are materialized. Be mindful:
+
+```{r memory_tip, eval=FALSE}
+# Good: Sample only what you need
+ranking <- recursive_fun(1L)
+samples <- rb_take_n_int(ranking, 100)  # Just 100 values
+rb_free(ranking)
+
+# Less good: Sampling millions wastes memory
+# samples <- rb_take_n_int(ranking, 1000000)
+```
+
+### Depth Limits
+
+Since R is eager, specify reasonable `max_depth` values:
+
+```{r depth_limits}
+# For most practical purposes, 20-30 levels is plenty
+practical_depth <- recursive_fun(1L, max_depth = 25)
+
+# At depth 25, value = 2^24 = 16,777,216
+last_sample <- rb_take_n_int(practical_depth, 26)
+cat(sprintf("\nAt depth 25: value = %d\n", tail(last_sample$value, 1)))
+
+rb_free(practical_depth)
+```
+
+## Key Takeaways
+
+1. **Lazy evaluation** enables infinite structures without exhaustive computation
+2. **Finite prefixes** are practical for most applications
+3. **Rank ordering** naturally expresses exceptionality (normal → exceptional)
+4. **Composition** via `rb_merge_int` and `rb_map_int` builds complex scenarios
+
+## See Also
+
+- `vignette("introduction")`: Basic operations and API
+- `vignette("boolean-circuit")`: Practical diagnosis example
+- Core C++ library: Truly lazy evaluation with infinite structures
