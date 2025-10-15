@@ -58,3 +58,6 @@ CALLER_GRAPH           = NO
 DOXYFILE_ENCODING      = UTF-8
 ALPHABETICAL_INDEX     = YES
 GENERATE_TREEVIEW      = YES
+
+# GitHub Pages compatibility
+HTML_EXTRA_FILES       = docs_assets/.nojekyll

@@ -1,5 +1,8 @@
 # ranked_belief
 
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://gitrdm.github.io/ranked_belief/)
+[![Deploy Docs](https://github.com/gitrdm/ranked_belief/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/gitrdm/ranked_belief/actions/workflows/deploy-docs.yml)
+
 A modern C++20 implementation of the ranked programming calculus that models epistemic uncertainty using ranking functions with fully lazy semantics. The library provides a complete algebra of lazy construction, transformation, and observation primitives that mirror the original Racket implementation while embracing idiomatic C++ abstractions.
 
 ## Overview
@@ -85,10 +88,15 @@ The boolean circuit example ranks fault explanations for an observed output, whi
 ### Generate API Documentation
 
 ```bash
-doxygen Doxyfile
+make docs      # Generate Doxygen documentation
+make show-docs # Generate and open in browser
 ```
 
-HTML documentation will be written to `build/docs/html/index.html`. The generated reference complements the curated guide in `docs/API.md`.
+HTML documentation will be written to `build/docs/html/index.html`. 
+
+**Online Documentation**: The latest API documentation is automatically published to [GitHub Pages](https://gitrdm.github.io/ranked_belief/).
+
+The generated reference complements the curated guide in `docs/API.md`.
 
 ## Repository Layout
 
