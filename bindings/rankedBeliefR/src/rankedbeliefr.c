@@ -2,10 +2,17 @@
 #include <Rinternals.h>
 #include <R_ext/Arith.h>
 #include <R_ext/Rdynload.h>
+#include <stdlib.h>
 
 #include "ranked_belief/c_api.h"
 
 static const char *ranked_belief_class = "ranked_belief_ranking";
+
+/* Helper context object that holds an R callback and protects it during the
+ * lifetime of the mapped/filtered ranking. */
+struct r_callback_context {
+    SEXP callback; /* R function to call */
+};
 
 static const char *status_message(rb_status status) {
     switch (status) {
@@ -37,15 +44,34 @@ static void ranking_finalizer(SEXP ext) {
     rb_ranking_t *ptr = (rb_ranking_t *) R_ExternalPtrAddr(ext);
     if (ptr) {
         rb_ranking_free(ptr);
-        R_ClearExternalPtr(ext);
     }
+    /* If we attached a callback context as the tag, release it */
+    SEXP tag = R_ExternalPtrTag(ext);
+    if (tag != R_NilValue && TYPEOF(tag) == EXTPTRSXP) {
+        void *raw = R_ExternalPtrAddr(tag);
+        if (raw) {
+            struct r_callback_context *ctx = (struct r_callback_context *) raw;
+            if (ctx->callback != R_NilValue) {
+                R_ReleaseObject(ctx->callback);
+            }
+            free(ctx);
+        }
+        /* clear the tag external pointer */
+        R_ClearExternalPtr(tag);
+    }
+    R_ClearExternalPtr(ext);
 }
 
-static SEXP make_ranking_external(rb_ranking_t *ptr) {
+static SEXP make_ranking_external(rb_ranking_t *ptr, void *user_ctx) {
     if (!ptr) {
         Rf_error("Failed to allocate ranking handle");
     }
     SEXP ext = PROTECT(R_MakeExternalPtr(ptr, R_NilValue, R_NilValue));
+    if (user_ctx != NULL) {
+        SEXP ctx_ext = PROTECT(R_MakeExternalPtr(user_ctx, R_NilValue, R_NilValue));
+        SET_TAG(ext, ctx_ext);
+        UNPROTECT(1);
+    }
     R_RegisterCFinalizerEx(ext, ranking_finalizer, TRUE);
     SEXP cls = PROTECT(allocVector(STRSXP, 1));
     SET_STRING_ELT(cls, 0, mkChar(ranked_belief_class));
@@ -85,7 +111,7 @@ SEXP rankedbeliefr_singleton_int(SEXP value_sexp) {
     rb_ranking_t *handle = NULL;
     rb_status status = rb_singleton_int(value, &handle);
     raise_status_error(status, "rb_singleton_int");
-    return make_ranking_external(handle);
+    return make_ranking_external(handle, NULL);
 }
 
 SEXP rankedbeliefr_from_array_int(SEXP values_sexp, SEXP ranks_sexp) {
@@ -126,7 +152,7 @@ SEXP rankedbeliefr_from_array_int(SEXP values_sexp, SEXP ranks_sexp) {
     rb_ranking_t *handle = NULL;
     rb_status status = rb_from_array_int(values, ranks_ptr, count, &handle);
     raise_status_error(status, "rb_from_array_int");
-    return make_ranking_external(handle);
+    return make_ranking_external(handle, NULL);
 }
 
 SEXP rankedbeliefr_take_n_int(SEXP ranking_sexp, SEXP n_sexp) {
@@ -213,7 +239,7 @@ SEXP rankedbeliefr_merge_int(SEXP lhs_sexp, SEXP rhs_sexp) {
     rb_ranking_t *handle = NULL;
     rb_status status = rb_merge_int(lhs, rhs, &handle);
     raise_status_error(status, "rb_merge_int");
-    return make_ranking_external(handle);
+    return make_ranking_external(handle, NULL);
 }
 
 SEXP rankedbeliefr_observe_value_int(SEXP ranking_sexp, SEXP value_sexp) {
@@ -225,14 +251,8 @@ SEXP rankedbeliefr_observe_value_int(SEXP ranking_sexp, SEXP value_sexp) {
     rb_ranking_t *handle = NULL;
     rb_status status = rb_observe_value_int(ranking, value, &handle);
     raise_status_error(status, "rb_observe_value_int");
-    return make_ranking_external(handle);
+    return make_ranking_external(handle, NULL);
 }
-
-/* Helper context object that holds an R callback and protects it during the
- * lifetime of the mapped/filtered ranking. */
-struct r_callback_context {
-    SEXP callback; /* R function to call */
-};
 
 static rb_status r_map_trampoline(int input_value, void *context, int *output_value) {
     struct r_callback_context *ctx = (struct r_callback_context *) context;
@@ -240,11 +260,13 @@ static rb_status r_map_trampoline(int input_value, void *context, int *output_va
         return RB_STATUS_INTERNAL_ERROR;
     }
     SEXP call = PROTECT(lang2(ctx->callback, ScalarInteger(input_value)));
-    SEXP res = R_tryEval(call, R_GlobalEnv, NULL);
-    UNPROTECT(1);
-    if (res == R_NilValue) {
+    int err = 0;
+    SEXP res = R_tryEval(call, R_GlobalEnv, &err);
+    if (err) {
+        UNPROTECT(1);
         return RB_STATUS_CALLBACK_ERROR;
     }
+    UNPROTECT(1);
     if (!isInteger(res) || XLENGTH(res) != 1) {
         return RB_STATUS_INVALID_ARGUMENT;
     }
@@ -258,11 +280,13 @@ static rb_status r_filter_trampoline(int input_value, void *context, int *keep) 
         return RB_STATUS_INTERNAL_ERROR;
     }
     SEXP call = PROTECT(lang2(ctx->callback, ScalarInteger(input_value)));
-    SEXP res = R_tryEval(call, R_GlobalEnv, NULL);
-    UNPROTECT(1);
-    if (res == R_NilValue) {
+    int err = 0;
+    SEXP res = R_tryEval(call, R_GlobalEnv, &err);
+    if (err) {
+        UNPROTECT(1);
         return RB_STATUS_CALLBACK_ERROR;
     }
+    UNPROTECT(1);
     if (!isLogical(res) || XLENGTH(res) != 1) {
         return RB_STATUS_INVALID_ARGUMENT;
     }
@@ -276,17 +300,18 @@ SEXP rankedbeliefr_map_int(SEXP ranking_sexp, SEXP callback_sexp) {
         Rf_error("callback must be a function");
     }
 
-    struct r_callback_context *ctx = (struct r_callback_context *) R_alloc(1, sizeof(struct r_callback_context));
+    struct r_callback_context *ctx = (struct r_callback_context *) malloc(sizeof(struct r_callback_context));
+    if (!ctx) {
+        Rf_error("allocation failure for callback context");
+    }
     ctx->callback = callback_sexp;
-    /* protect the callback from GC by attaching it to the returned external ptr */
+    /* keep the R callback alive across GC by preserving it */
+    R_PreserveObject(callback_sexp);
 
     rb_ranking_t *out = NULL;
     rb_status status = rb_map_int(ranking, r_map_trampoline, ctx, &out);
     raise_status_error(status, "rb_map_int");
-
-    SEXP ext = PROTECT(make_ranking_external(out));
-    /* stash the R callback in the external pointer's tag so it is kept alive */
-    SET_TAG(ext, callback_sexp);
+    SEXP ext = PROTECT(make_ranking_external(out, ctx));
     UNPROTECT(1);
     return ext;
 }
@@ -297,15 +322,18 @@ SEXP rankedbeliefr_filter_int(SEXP ranking_sexp, SEXP predicate_sexp) {
         Rf_error("predicate must be a function");
     }
 
-    struct r_callback_context *ctx = (struct r_callback_context *) R_alloc(1, sizeof(struct r_callback_context));
+    struct r_callback_context *ctx = (struct r_callback_context *) malloc(sizeof(struct r_callback_context));
+    if (!ctx) {
+        Rf_error("allocation failure for callback context");
+    }
     ctx->callback = predicate_sexp;
+    R_PreserveObject(predicate_sexp);
 
     rb_ranking_t *out = NULL;
     rb_status status = rb_filter_int(ranking, r_filter_trampoline, ctx, &out);
     raise_status_error(status, "rb_filter_int");
 
-    SEXP ext = PROTECT(make_ranking_external(out));
-    SET_TAG(ext, predicate_sexp);
+    SEXP ext = PROTECT(make_ranking_external(out, ctx));
     UNPROTECT(1);
     return ext;
 }
