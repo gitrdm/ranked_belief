@@ -1,3 +1,4 @@
-RANKED_BELIEF_ROOT ?= ../..
+# Use environment variable or default relative path
+RANKED_BELIEF_ROOT ?= $(shell cd ../.. && pwd)
 PKG_CPPFLAGS = -I$(RANKED_BELIEF_ROOT)/include
 PKG_LIBS = -L$(RANKED_BELIEF_ROOT)/build -lranked_belief_c_api -lstdc++

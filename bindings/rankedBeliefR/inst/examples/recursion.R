@@ -1,22 +1,40 @@
-# Recursive ranking example illustrating infinite lazy structures (idiomatic R)
+# Recursive ranking example (full port from Python/Racket)
+#
+# Illustrates infinite lazy structures: 1@0, 2@1, 4@2, 8@3, 16@4, ...
 
-# Construct a lazy recursive ranking where each exceptional branch doubles the value
+library(rankedBeliefR)
+
 recursive_fun <- function(value) {
-  # The prior is: value @ rank 0, and recursively recursive_fun(value*2) @ rank 1
-  normal <- rb_singleton_int(as.integer(value))
-  exceptional <- rb_map_int(rb_singleton_int(as.integer(value * 2)), function(x) x)
-  rb_merge_int(normal, exceptional)
+  # Normally: value at rank 0
+  # Exceptionally: recursive_fun(value * 2) at rank 1
+  # Since R is eager, we enumerate a finite prefix
+  max_depth <- 20
+  
+  values_vec <- integer(max_depth)
+  ranks_vec <- numeric(max_depth)
+  
+  current_val <- value
+  for (i in seq_len(max_depth)) {
+    values_vec[i] <- current_val
+    ranks_vec[i] <- i - 1  # rank starts at 0
+    current_val <- current_val * 2L
+  }
+  
+  rb_from_array_int(values = values_vec, ranks = ranks_vec)
 }
 
 first_values <- function(count = 10) {
-  ranking <- recursive_fun(1)
+  ranking <- recursive_fun(1L)
   df <- rb_take_n_int(ranking, count)
+  rb_free(ranking)
   df
 }
 
 run_example <- function() {
-  cat("Running recursion example...\n")
-  print(first_values(10))
+  cat("Recursive ranking example (infinite lazy structure)\n\n")
+  df <- first_values(10)
+  cat("First 10 values from recursive_fun(1):\n")
+  print(df)
 }
 
-if (interactive()) run_example()
+if (!exists("SKIP_EXAMPLE_RUN")) run_example()
