@@ -31,7 +31,10 @@ The library consists of:
 
 ### Prerequisites
 
-- C++20 toolchain (GCC 10+, Clang 13+, or MSVC 19.29+)
+- **C++20 toolchain** (GCC 10+, Clang 13+, or MSVC 19.29+)
+  - Required C++20 features: concepts, `<=>` operator, `requires` clauses, `constexpr` improvements
+  - Key usage: Type constraints via concepts, three-way comparison for `Rank`, SFINAE replacement with requires
+  - *Note:* C++17 will not work due to missing concepts and spaceship operator support
 - CMake 3.20 or newer
 - Doxygen 1.9+ (optional, for API documentation)
 - Python 3.8+ with pybind11 (optional, for Python bindings)
