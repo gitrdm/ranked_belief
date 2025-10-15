@@ -24,36 +24,18 @@ edges_from <- function(node, max_degree = 3) {
 
 # Propagate through network for n steps
 propagate <- function(start_node, steps, max_degree = 3) {
-  # Manually enumerate paths for given steps
-  # For 2 steps: 0 -> i -> j for i,j in 1:max_degree
+  current <- edges_from(start_node, max_degree)
   
-  if (steps == 1) {
-    return(edges_from(start_node, max_degree))
+  for (step in seq_len(steps - 1)) {
+    # Use rb_merge_apply_int: for each edge, generate new edges from destination
+    current <- rb_merge_apply_int(current, function(edge_val) {
+      edge <- decode_edge(edge_val)
+      to_node <- edge[2]
+      edges_from(to_node, max_degree)
+    })
   }
   
-  if (steps == 2) {
-    # Generate all 2-hop paths from start_node
-    values <- integer(0)
-    ranks <- numeric(0)
-    
-    for (i in seq_len(max_degree)) {
-      edge1_val <- encode_edge(start_node, i)
-      edge1_rank <- rank_edge(start_node, i)
-      
-      for (j in seq_len(max_degree)) {
-        edge2_val <- encode_edge(i, j)
-        edge2_rank <- rank_edge(i, j)
-        
-        # Final edge in path
-        values <- c(values, edge2_val)
-        ranks <- c(ranks, edge1_rank + edge2_rank)
-      }
-    }
-    
-    return(rb_from_array_int(values = as.integer(values), ranks = ranks))
-  }
-  
-  stop("Only steps 1 and 2 supported for this simple example")
+  current
 }
 
 run_example <- function() {

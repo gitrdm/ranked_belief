@@ -10,34 +10,25 @@ sub_op <- function(a, b) as.integer(a - b)
 
 # Apply ranked operation to ranked operands
 ranked_apply <- function() {
-  # Enumerate all (op, value) combinations with their combined ranks
-  # op: 0=add (rank 0), 1=sub (rank 1)
-  # value: 10 (rank 0), 20 (rank 1)
+  # Value: normally 10, exceptionally 20
+  value_dist <- rb_from_array_int(values = c(10L, 20L), ranks = c(0, 1))
   
-  combinations <- list(
-    list(op = 0L, value = 10L, rank = 0),  # add 10+5 = 15, rank 0+0=0
-    list(op = 0L, value = 20L, rank = 1),  # add 20+5 = 25, rank 0+1=1
-    list(op = 1L, value = 10L, rank = 1),  # sub 10-5 = 5, rank 1+0=1
-    list(op = 1L, value = 20L, rank = 2)   # sub 20-5 = 15, rank 1+1=2
-  )
+  # Operation: normally add, exceptionally subtract
+  # Encode as: 0=add, 1=subtract
+  op_dist <- rb_from_array_int(values = c(0L, 1L), ranks = c(0, 1))
   
-  values <- integer(length(combinations))
-  ranks <- numeric(length(combinations))
+  # Use rb_merge_apply_int to compose: for each op, apply it to each value
+  result <- rb_merge_apply_int(op_dist, function(op_val) {
+    rb_merge_apply_int(value_dist, function(val) {
+      if (op_val == 0L) {
+        rb_singleton_int(add_op(val, 5L))
+      } else {
+        rb_singleton_int(sub_op(val, 5L))
+      }
+    })
+  })
   
-  for (i in seq_along(combinations)) {
-    op <- combinations[[i]]$op
-    val <- combinations[[i]]$value
-    
-    if (op == 0L) {
-      values[i] <- add_op(val, 5L)
-    } else {
-      values[i] <- sub_op(val, 5L)
-    }
-    
-    ranks[i] <- combinations[[i]]$rank
-  }
-  
-  rb_from_array_int(values = values, ranks = ranks)
+  result
 }
 
 run_example <- function() {

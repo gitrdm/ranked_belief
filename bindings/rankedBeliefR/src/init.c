@@ -12,6 +12,7 @@ SEXP rankedbeliefr_observe_value_int(SEXP ranking_sexp, SEXP value_sexp);
 SEXP rankedbeliefr_free(SEXP ranking_sexp);
 SEXP rankedbeliefr_map_int(SEXP ranking_sexp, SEXP callback_sexp);
 SEXP rankedbeliefr_filter_int(SEXP ranking_sexp, SEXP predicate_sexp);
+SEXP rankedbeliefr_merge_apply_int(SEXP ranking_sexp, SEXP callback_sexp);
 
 static const R_CallMethodDef CallEntries[] = {
     {"rankedbeliefr_singleton_int", (DL_FUNC) &rankedbeliefr_singleton_int, 1},
@@ -24,6 +25,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"rankedbeliefr_free", (DL_FUNC) &rankedbeliefr_free, 1},
     {"rankedbeliefr_map_int", (DL_FUNC) &rankedbeliefr_map_int, 2},
     {"rankedbeliefr_filter_int", (DL_FUNC) &rankedbeliefr_filter_int, 2},
+    {"rankedbeliefr_merge_apply_int", (DL_FUNC) &rankedbeliefr_merge_apply_int, 2},
     {NULL, NULL, 0}
 };
 

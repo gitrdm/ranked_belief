@@ -4,6 +4,7 @@
 #include "ranked_belief/operations/filter.hpp"
 #include "ranked_belief/operations/map.hpp"
 #include "ranked_belief/operations/merge.hpp"
+#include "ranked_belief/operations/merge_apply.hpp"
 #include "ranked_belief/operations/nrm_exc.hpp"
 #include "ranked_belief/operations/observe.hpp"
 
@@ -249,6 +250,51 @@ rb_status rb_merge_int(const rb_ranking_t *lhs, const rb_ranking_t *rhs, rb_rank
         auto handle = make_handle(std::move(merged));
         *out_ranking = handle.release();
         return RB_STATUS_OK;
+    } catch (const std::bad_alloc &ex) {
+        return translate_exception(ex);
+    } catch (const std::logic_error &ex) {
+        return translate_exception(ex);
+    } catch (const std::exception &ex) {
+        return translate_exception(ex);
+    }
+}
+
+rb_status rb_merge_apply_int(const rb_ranking_t *ranking, rb_merge_apply_callback_t callback, void *context, rb_ranking_t **out_ranking)
+{
+    if (!out_ranking || !callback) {
+        return RB_STATUS_INVALID_ARGUMENT;
+    }
+    *out_ranking = nullptr;
+
+    const auto *source = unwrap(ranking);
+    if (!source) {
+        return RB_STATUS_INVALID_ARGUMENT;
+    }
+
+    try {
+        auto merged = ranked_belief::merge_apply(
+            *source,
+            [callback, context](const int &value) -> ranked_belief::RankingFunction<int> {
+                rb_ranking_t *result_ranking = nullptr;
+                const rb_status status = callback(value, context, &result_ranking);
+                if (status != RB_STATUS_OK) {
+                    throw callback_error(status);
+                }
+                if (!result_ranking || !result_ranking->ranking) {
+                    throw std::logic_error("merge_apply callback returned null ranking");
+                }
+                
+                // Make a copy of the ranking function and return it
+                // The handle stays alive since R owns it
+                return *result_ranking->ranking;
+            },
+            to_deduplication(source->is_deduplicating()));
+
+        auto handle = make_handle(std::move(merged));
+        *out_ranking = handle.release();
+        return RB_STATUS_OK;
+    } catch (const callback_error &ex) {
+        return translate_exception(ex);
     } catch (const std::bad_alloc &ex) {
         return translate_exception(ex);
     } catch (const std::logic_error &ex) {

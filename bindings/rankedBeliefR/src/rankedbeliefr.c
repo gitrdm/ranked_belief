@@ -338,6 +338,56 @@ SEXP rankedbeliefr_filter_int(SEXP ranking_sexp, SEXP predicate_sexp) {
     return ext;
 }
 
+static rb_status r_merge_apply_trampoline(int input_value, void *context, rb_ranking_t **output_ranking) {
+    struct r_callback_context *ctx = (struct r_callback_context *) context;
+    if (!ctx || ctx->callback == R_NilValue) {
+        return RB_STATUS_INTERNAL_ERROR;
+    }
+    SEXP call = PROTECT(lang2(ctx->callback, ScalarInteger(input_value)));
+    int err = 0;
+    SEXP res = R_tryEval(call, R_GlobalEnv, &err);
+    if (err) {
+        UNPROTECT(1);
+        return RB_STATUS_CALLBACK_ERROR;
+    }
+    UNPROTECT(1);
+    
+    // Result must be a ranking external pointer
+    if (!Rf_inherits(res, ranked_belief_class)) {
+        return RB_STATUS_INVALID_ARGUMENT;
+    }
+    
+    rb_ranking_t *ptr = (rb_ranking_t *) R_ExternalPtrAddr(res);
+    if (!ptr) {
+        return RB_STATUS_INVALID_ARGUMENT;
+    }
+    
+    *output_ranking = ptr;
+    return RB_STATUS_OK;
+}
+
+SEXP rankedbeliefr_merge_apply_int(SEXP ranking_sexp, SEXP callback_sexp) {
+    rb_ranking_t *ranking = expect_ranking(ranking_sexp, 0);
+    if (!isFunction(callback_sexp)) {
+        Rf_error("callback must be a function");
+    }
+
+    struct r_callback_context *ctx = (struct r_callback_context *) malloc(sizeof(struct r_callback_context));
+    if (!ctx) {
+        Rf_error("allocation failure for callback context");
+    }
+    ctx->callback = callback_sexp;
+    R_PreserveObject(callback_sexp);
+
+    rb_ranking_t *out = NULL;
+    rb_status status = rb_merge_apply_int(ranking, r_merge_apply_trampoline, ctx, &out);
+    raise_status_error(status, "rb_merge_apply_int");
+
+    SEXP ext = PROTECT(make_ranking_external(out, ctx));
+    UNPROTECT(1);
+    return ext;
+}
+
 
 SEXP rankedbeliefr_free(SEXP ranking_sexp) {
     if (ranking_sexp == R_NilValue) {

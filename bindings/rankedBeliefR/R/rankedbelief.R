@@ -123,6 +123,22 @@ rb_filter_int <- function(ranking, pred) {
   .Call(rankedbeliefr_filter_int, ranking, pred)
 }
 
+#' Monadic bind (flatMap) - map each element to a ranking and merge results.
+#'
+#' This is the fundamental operation for composing ranked computations without
+#' manual enumeration. For each element (value, rank) in the input ranking,
+#' the callback produces a new ranking whose ranks are shifted by `rank`,
+#' and all results are merged in rank order.
+#'
+#' @param ranking A ranking handle.
+#' @param f A function of one argument (value) returning a ranking handle.
+#' @return A new ranking handle representing the merged result.
+#' @export
+rb_merge_apply_int <- function(ranking, f) {
+  if (!is.function(f)) stop("`f` must be a function", call. = FALSE)
+  .Call(rankedbeliefr_merge_apply_int, ranking, f)
+}
+
 #' @export
 print.ranked_belief_ranking <- function(x, n = 6L, ...) {
   cat("<ranked_belief_ranking>\n", sep = "")

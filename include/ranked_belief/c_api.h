@@ -68,6 +68,20 @@ typedef rb_status (*rb_map_callback_t)(int input_value, void *context, int *outp
 typedef rb_status (*rb_filter_callback_t)(int input_value, void *context, int *keep);
 
 /**
+ * @brief Callback signature used by ::rb_merge_apply_int (monadic bind).
+ *
+ * @param input_value The value from the source ranking.
+ * @param context Caller-provided context pointer passed through unchanged.
+ * @param output_ranking Receives a newly allocated ranking that will be merged at the appropriate rank offset.
+ * @return ::RB_STATUS_OK on success, any other ::rb_status value to signal an error.
+ *
+ * @note The callback is evaluated lazily and must return a valid ranking handle via `output_ranking`.
+ *       The returned ranking will be shifted by the input element's rank and merged into the result.
+ *       This is the monadic bind operation (flatMap) that allows composing ranked computations.
+ */
+typedef rb_status (*rb_merge_apply_callback_t)(int input_value, void *context, rb_ranking_t **output_ranking);
+
+/**
  * @brief Allocate a ranking containing a single integer at rank zero.
  *
  * @param value The value to store.
@@ -126,6 +140,27 @@ rb_status rb_filter_int(const rb_ranking_t *ranking, rb_filter_callback_t callba
  *         or ::RB_STATUS_ALLOCATION_FAILURE if allocation fails during wrapper creation.
  */
 rb_status rb_merge_int(const rb_ranking_t *lhs, const rb_ranking_t *rhs, rb_ranking_t **out_ranking);
+
+/**
+ * @brief Monadic bind operation - map each element to a ranking and merge results (flatMap).
+ *
+ * For each element `(value, rank)` in the input ranking, invokes the callback to produce
+ * a new ranking. That ranking's ranks are shifted by `rank`, and all results are merged
+ * in rank order. This is the fundamental operation for composing ranked computations.
+ *
+ * @param ranking Source ranking to transform.
+ * @param callback Function invoked lazily for each element, returning a ranking.
+ * @param context Arbitrary pointer supplied to each callback invocation.
+ * @param out_ranking Receives the merged result on success.
+ * @return ::RB_STATUS_OK on success, ::RB_STATUS_INVALID_ARGUMENT for bad inputs,
+ *         ::RB_STATUS_CALLBACK_ERROR if a callback fails, or ::RB_STATUS_ALLOCATION_FAILURE
+ *         if allocation fails during construction.
+ *
+ * @note This enables composition of ranked values without manual enumeration. For example,
+ *       to apply a ranked function to a ranked argument, map over the function ranking
+ *       and for each function, map over the argument ranking applying that function.
+ */
+rb_status rb_merge_apply_int(const rb_ranking_t *ranking, rb_merge_apply_callback_t callback, void *context, rb_ranking_t **out_ranking);
 
 /**
  * @brief Condition a ranking on equality with a specific value.

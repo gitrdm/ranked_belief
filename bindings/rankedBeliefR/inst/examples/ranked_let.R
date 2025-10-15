@@ -29,26 +29,19 @@ decode_pair <- function(val) c(val %/% 2, val %% 2)
 
 # Ranked let: beer then peanuts
 ranked_let_example <- function() {
-  # Enumerate all (beer, peanuts) combinations with their ranks
-  # beer: FALSE (0) rank 0, TRUE (1) rank 1
-  # peanuts given beer=FALSE: always FALSE (0)
-  # peanuts given beer=TRUE: TRUE (1) rank 0, FALSE (0) rank 1
+  beer_dist <- nrm_exc_bool()
   
-  combinations <- list(
-    list(beer = 0L, peanuts = 0L, rank = 0),  # beer=F rank 0, peanuts=F rank 0 -> 0+0=0
-    list(beer = 1L, peanuts = 1L, rank = 1),  # beer=T rank 1, peanuts=T rank 0 -> 1+0=1
-    list(beer = 1L, peanuts = 0L, rank = 2)   # beer=T rank 1, peanuts=F rank 1 -> 1+1=2
-  )
+  # Use rb_merge_apply_int: for each beer value, generate peanuts distribution
+  combined <- rb_merge_apply_int(beer_dist, function(beer_val) {
+    peanuts_dist <- peanuts_given_beer(beer_val)
+    
+    # Map peanuts to (beer, peanuts) pairs
+    rb_merge_apply_int(peanuts_dist, function(peanuts_val) {
+      rb_singleton_int(encode_pair(beer_val, peanuts_val))
+    })
+  })
   
-  values <- integer(length(combinations))
-  ranks <- numeric(length(combinations))
-  
-  for (i in seq_along(combinations)) {
-    values[i] <- encode_pair(combinations[[i]]$beer, combinations[[i]]$peanuts)
-    ranks[i] <- combinations[[i]]$rank
-  }
-  
-  rb_from_array_int(values = values, ranks = ranks)
+  combined
 }
 
 run_example <- function() {
